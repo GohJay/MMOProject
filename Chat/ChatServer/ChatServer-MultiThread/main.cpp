@@ -77,22 +77,18 @@ Character Count: %d\n\
 ------------------------------------\n\
 Character Pool Use: %d\n\
 Packet Pool Use: %d\n\
-Job Pool Use: %d\n\
-Job Queue Count: %d\n\
 ------------------------------------\n\
 Total Accept: %d\n\
 Accept TPS: %d\n\
 Recv TPS: %d\n\
 Send TPS: %d\n\
 ------------------------------------\n\
-\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
 		, g_Server.GetSessionCount()
 		, g_Server.GetCharacterCount()
 		, g_Server.GetUseCharacterPool()
 		, g_Server.GetUsePacketCount()
-		, g_Server.GetUseJobPool()
-		, g_Server.GetJobQueueCount()
 		, g_Server.GetTotalAcceptCount()
 		, g_Server.GetAcceptTPS()
 		, g_Server.GetRecvTPS()
