@@ -11,7 +11,7 @@
 #define MAKE_SESSIONID(key, index)		((key) << 16) | (index)
 
 #define MAX_SENDBUF						500
-#define MAX_PACKETLEN					1000
+#define MAX_PAYLOAD						1000
 
 struct SESSION
 {

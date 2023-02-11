@@ -16,7 +16,7 @@ using namespace Jay;
 DWORD Logger::_logIndex;
 int Logger::_logLevel;
 wchar_t Logger::_logPath[MAX_PATH];
-SRWLOCK Logger::_logLock;
+SRWLock Logger::_logLock;
 Logger Logger::_instance;
 
 Logger::Logger()
@@ -26,9 +26,8 @@ Logger::Logger()
 	//--------------------------------------------------------------------
 	_logIndex = 0;
 	_logLevel = LOG_LEVEL_SYSTEM;
-	_logPath[0] = L'\0';
+	wcscpy_s(_logPath, L".");
 	setlocale(LC_ALL, "");
-	InitializeSRWLock(&_logLock);
 }
 Logger::~Logger()
 {
@@ -50,22 +49,21 @@ void Logger::WriteLog(const wchar_t * type, int logLevel, const wchar_t * fmt, .
 	if (_logLevel > logLevel)
 		return;
 
-	wchar_t buffer[512];
+	wchar_t buffer[256];
 	bool truncated;
 
 	va_list args;
 	va_start(args, fmt);
 	HRESULT ret = StringCchVPrintf(buffer, sizeof(buffer) / 2, fmt, args);
 	va_end(args);
-
 	truncated = FAILED(ret);
 
 	//--------------------------------------------------------------------
 	// Write Proc
 	//--------------------------------------------------------------------
-	AcquireSRWLockExclusive(&_logLock);
+	_logLock.Lock();
 	WriteProc(type, logLevel, buffer, truncated);
-	ReleaseSRWLockExclusive(&_logLock);
+	_logLock.UnLock();
 }
 void Logger::WriteHex(const wchar_t* type, int logLevel, const wchar_t* log, BYTE* byte, int byteLen)
 {
@@ -73,7 +71,7 @@ void Logger::WriteHex(const wchar_t* type, int logLevel, const wchar_t* log, BYT
 		return;
 
 	wchar_t hex[4];
-	wchar_t buffer[1024];
+	wchar_t buffer[256];
 	bool truncated;
 
 	HRESULT ret = StringCchPrintf(buffer, sizeof(buffer) / 2, L"%s - ", log);
@@ -82,15 +80,14 @@ void Logger::WriteHex(const wchar_t* type, int logLevel, const wchar_t* log, BYT
 		StringCchPrintf(hex, sizeof(hex) / 2, L"%02X", byte[i]);
 		ret = StringCchCat(buffer, sizeof(buffer) / 2, hex);
 	}
-
 	truncated = FAILED(ret);
 
 	//--------------------------------------------------------------------
 	// Write Proc
 	//--------------------------------------------------------------------
-	AcquireSRWLockExclusive(&_logLock);
+	_logLock.Lock();
 	WriteProc(type, logLevel, buffer, truncated);
-	ReleaseSRWLockExclusive(&_logLock);
+	_logLock.UnLock();
 }
 void Logger::WriteProc(const wchar_t* type, int logLevel, const wchar_t* buffer, bool truncated)
 {
