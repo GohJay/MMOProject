@@ -1,6 +1,6 @@
 ﻿#include "stdafx.h"
-#include "../Common/CrashDump.h"
-#include "../Common/Logger.h"
+#include "../../Common/CrashDump.h"
+#include "../../Common/Logger.h"
 #include "ChatServer.h"
 #include "ServerConfig.h"
 #pragma comment(lib, "Winmm.lib")

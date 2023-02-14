@@ -1,13 +1,15 @@
 #pragma once
-#include "../Lib/Network/include/NetServer.h"
-#include "../Common/CommonProtocol.h"
-#include "../Common/LockFreeQueue.h"
-#include "../Common/ObjectPool_TLS.h"
+#include "../../Lib/Network/include/NetServer.h"
+#include "../../Common/CommonProtocol.h"
+#include "../../Common/LockFreeQueue.h"
+#include "../../Common/ObjectPool_TLS.h"
 #include "Define.h"
 #include "Object.h"
 #include <unordered_map>
 #include <list>
 #include <thread>
+
+typedef DWORD64 SESSION_ID;
 
 class ChatServer : public Jay::NetServer
 {
@@ -63,7 +65,7 @@ private:
 	void SendSectorOne(Jay::NetPacket* packet, int sectorX, int sectorY);
 	void SendSectorAround(CHARACTER* character, Jay::NetPacket* packet);
 private:
-	std::unordered_map<DWORD64, CHARACTER*> _characterMap;
+	std::unordered_map<SESSION_ID, CHARACTER*> _characterMap;
 	Jay::ObjectPool_TLS<CHARACTER> _characterPool;
 	Jay::LockFreeQueue<JOB*> _jobQ;
 	Jay::ObjectPool_TLS<JOB> _jobPool;

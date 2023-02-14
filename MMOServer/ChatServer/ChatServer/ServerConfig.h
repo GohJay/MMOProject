@@ -1,6 +1,6 @@
 #pragma once
 #include "Define.h"
-#include "../Lib/TextParser/include/ConfigParser.h"
+#include "../../Lib/TextParser/include/ConfigParser.h"
 
 class ServerConfig
 {

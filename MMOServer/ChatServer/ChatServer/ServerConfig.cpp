@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "ServerConfig.h"
-#pragma comment(lib, "../Lib/TextParser/lib64/TextParser.lib")
+#pragma comment(lib, "../../Lib/TextParser/lib64/TextParser.lib")
 
 SERVER_INFO ServerConfig::_serverInfo;
 SERVICE_INFO ServerConfig::_serviceInfo;

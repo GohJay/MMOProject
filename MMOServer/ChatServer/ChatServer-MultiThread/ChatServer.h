@@ -1,14 +1,16 @@
 #pragma once
-#include "../Lib/Network/include/NetServer.h"
-#include "../Common/CommonProtocol.h"
-#include "../Common/LockFreeQueue.h"
-#include "../Common/ObjectPool_TLS.h"
-#include "../Common/Lock.h"
+#include "../../Lib/Network/include/NetServer.h"
+#include "../../Common/CommonProtocol.h"
+#include "../../Common/LockFreeQueue.h"
+#include "../../Common/ObjectPool_TLS.h"
+#include "../../Common/Lock.h"
 #include "Define.h"
 #include "Object.h"
 #include <unordered_map>
 #include <list>
 #include <thread>
+
+typedef DWORD64 SESSION_ID;
 
 class ChatServer : public Jay::NetServer
 {
@@ -16,7 +18,7 @@ public:
 	ChatServer();
 	~ChatServer();
 public:
-	bool Start(const wchar_t* ipaddress, int port, int workerCreateCnt, int workerRunningCnt, WORD sessionMax, WORD userMax, BYTE packetCode, BYTE packetKey, int timeoutSec = 0, bool nagle = true);
+	bool Start(const wchar_t* ipaddress, int port, int workerCreateCnt, int workerRunningCnt, WORD sessionMax, BYTE packetCode, BYTE packetKey, int timeoutSec = 0, bool nagle = true);
 	void Stop();
 	int GetCharacterCount();
 	int GetUseCharacterPool();
@@ -47,7 +49,7 @@ private:
 	void LockSectorAround(SECTOR_AROUND* sectorAround);
 	void UnLockSectorAround(SECTOR_AROUND* sectorAround);
 private:
-	std::unordered_map<DWORD64, CHARACTER*> _characterMap;
+	std::unordered_map<SESSION_ID, CHARACTER*> _characterMap;
 	Jay::SRWLock _characterMapLock;
 	Jay::ObjectPool_TLS<CHARACTER> _characterPool;
 	std::list<CHARACTER*> _sectorList[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];

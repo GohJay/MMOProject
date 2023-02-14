@@ -2,11 +2,11 @@
 #include "ChatServer.h"
 #include "ServerConfig.h"
 #include "Packet.h"
-#include "../Lib/Network/include/Error.h"
-#include "../Lib/Network/include/NetException.h"
-#include "../Common/Logger.h"
-#include "../Common/CrashDump.h"
-#pragma comment(lib, "../Lib/Network/lib64/Network.lib")
+#include "../../Common/Logger.h"
+#include "../../Common/CrashDump.h"
+#include "../../Lib/Network/include/Error.h"
+#include "../../Lib/Network/include/NetException.h"
+#pragma comment(lib, "../../Lib/Network/lib64/Network.lib")
 
 using namespace Jay;
 
@@ -16,7 +16,7 @@ ChatServer::ChatServer() : _characterPool(0)
 ChatServer::~ChatServer()
 {
 }
-bool ChatServer::Start(const wchar_t* ipaddress, int port, int workerCreateCnt, int workerRunningCnt, WORD sessionMax, WORD userMax, BYTE packetCode, BYTE packetKey, int timeoutSec, bool nagle)
+bool ChatServer::Start(const wchar_t* ipaddress, int port, int workerCreateCnt, int workerRunningCnt, WORD sessionMax, BYTE packetCode, BYTE packetKey, int timeoutSec, bool nagle)
 {
 	//--------------------------------------------------------------------
 	// Initial
@@ -182,8 +182,6 @@ bool ChatServer::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
 	//--------------------------------------------------------------------
 	switch (type)
 	{
-	case en_PACKET_CS_CHAT_SERVER:
-		break;
 	case en_PACKET_CS_CHAT_REQ_LOGIN:
 		return PacketProc_ChatLogin(sessionID, packet);
 	case en_PACKET_CS_CHAT_RES_LOGIN:

@@ -39,28 +39,25 @@
     <ClCompile Include="ChatServer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\CrashDump.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\FileUtil.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\Logger.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="Packet.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="ServerConfig.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Common\CrashDump.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Common\FileUtil.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Common\Logger.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
       <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\CommonProtocol.h">
-      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="ChatServer.h">
       <Filter>헤더 파일</Filter>
@@ -68,47 +65,50 @@
     <ClInclude Include="Object.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CrashDump.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\FileUtil.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Logger.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Define.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Packet.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\ObjectPool_TLS.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\LockFreeQueue.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\ObjectPool.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Lib\Network\include\Error.h">
-      <Filter>Lib\Network</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Lib\Network\include\NetServer.h">
-      <Filter>Lib\Network</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Lib\Network\include\NetPacket.h">
-      <Filter>Lib\Network</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Lib\Network\include\NetException.h">
-      <Filter>Lib\Network</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Lib\TextParser\include\ConfigParser.h">
-      <Filter>Lib\TextParser</Filter>
-    </ClInclude>
     <ClInclude Include="ServerConfig.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\CommonProtocol.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\CrashDump.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\FileUtil.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\LockFreeQueue.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\Logger.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\ObjectPool.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\ObjectPool_TLS.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Lib\TextParser\include\ConfigParser.h">
+      <Filter>Lib\TextParser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Lib\Network\include\Error.h">
+      <Filter>Lib\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Lib\Network\include\NetException.h">
+      <Filter>Lib\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Lib\Network\include\NetPacket.h">
+      <Filter>Lib\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Lib\Network\include\NetServer.h">
+      <Filter>Lib\Network</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

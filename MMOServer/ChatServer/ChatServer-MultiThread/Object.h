@@ -1,6 +1,6 @@
 #pragma once
 #include "Define.h"
-#include "../Common/Lock.h"
+#include "../../Common/Lock.h"
 #include <Windows.h>
 
 struct SECTOR

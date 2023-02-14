@@ -1,5 +1,5 @@
 #pragma once
-#include "../Lib/Network/include/NetPacket.h"
+#include "../../Lib/Network/include/NetPacket.h"
 
 class Packet
 {

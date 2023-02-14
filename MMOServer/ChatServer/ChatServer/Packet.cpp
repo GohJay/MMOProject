@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "Packet.h"
-#include "../Common/CommonProtocol.h"
+#include "../../Common/CommonProtocol.h"
 
 void Packet::MakeChatLogin(Jay::NetPacket* packet, BYTE status, INT64 accountNo)
 {
