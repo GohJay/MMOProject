@@ -4,7 +4,6 @@
 #include "StringUtil.h"
 #include <strsafe.h>
 #include <memory>
-#pragma comment(lib, "../Lib/MySQL/lib64/vs14/mysqlcppconn-static.lib")
 
 using namespace Jay;
 
@@ -12,7 +11,7 @@ sql::Driver* DBConnector::_driver = get_driver_instance();
 DBConnector::DBConnector()
 {
     memset(&_profile, 0, sizeof(_profile));
-    _lastProfileTime = 0;
+    _lastProfileTime = timeGetTime();
     QueryPerformanceFrequency(&_freq);
 }
 DBConnector::~DBConnector()
