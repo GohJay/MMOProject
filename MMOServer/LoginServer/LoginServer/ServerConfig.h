@@ -26,6 +26,9 @@ public:
 	static const wchar_t* GetDatabaseUser() { return _databaseInfo.user; }
 	static const wchar_t* GetDatabasePassword() { return _databaseInfo.passwd; }
 	static const wchar_t* GetDatabaseSchema() { return _databaseInfo.schema; }
+	static const wchar_t* GetRedisIP() { return _databaseInfo.redis_ip; }
+	static int GetRedisPort() { return _databaseInfo.redis_port; }
+	static int GetRedisTimeout() { return _databaseInfo.redis_timeout; }
 private:
 	static SERVER_INFO _serverInfo;
 	static SERVICE_INFO _serviceInfo;

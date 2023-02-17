@@ -32,5 +32,8 @@ bool ServerConfig::LoadFile(const wchar_t* filename)
 	confParser.GetValue(L"DATABASE", L"USER", _databaseInfo.user);
 	confParser.GetValue(L"DATABASE", L"PASSWORD", _databaseInfo.passwd);
 	confParser.GetValue(L"DATABASE", L"SCHEMA", _databaseInfo.schema);
+	confParser.GetValue(L"DATABASE", L"REDIS_IP", _databaseInfo.redis_ip);
+	confParser.GetValue(L"DATABASE", L"REDIS_PORT", &_databaseInfo.redis_port);
+	confParser.GetValue(L"DATABASE", L"REDIS_TIMEOUT", &_databaseInfo.redis_timeout);
     return true;
 }

@@ -4,6 +4,7 @@
 
 SERVER_INFO ServerConfig::_serverInfo;
 SERVICE_INFO ServerConfig::_serviceInfo;
+DATABASE_INFO ServerConfig::_databaseInfo;
 
 bool ServerConfig::LoadFile(const wchar_t* filename)
 {
@@ -22,5 +23,8 @@ bool ServerConfig::LoadFile(const wchar_t* filename)
 	confParser.GetValue(L"SERVER", L"LOG_LEVEL", &_serverInfo.logLevel);
 	confParser.GetValue(L"SERVER", L"LOG_PATH", _serverInfo.logPath);
 	confParser.GetValue(L"SERVICE", L"TIMEOUT_SEC", &_serviceInfo.timeoutSec);
+	confParser.GetValue(L"DATABASE", L"REDIS_IP", _databaseInfo.redis_ip);
+	confParser.GetValue(L"DATABASE", L"REDIS_PORT", &_databaseInfo.redis_port);
+	confParser.GetValue(L"DATABASE", L"REDIS_TIMEOUT", &_databaseInfo.redis_timeout);
     return true;
 }

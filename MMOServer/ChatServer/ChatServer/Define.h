@@ -36,3 +36,13 @@ struct SERVICE_INFO
 	//-----------------------------------
 	int timeoutSec;
 };
+
+struct DATABASE_INFO
+{
+	//-----------------------------------
+	// Redis 접속 정보
+	//-----------------------------------
+	wchar_t redis_ip[16];
+	int redis_port;
+	int redis_timeout;
+};

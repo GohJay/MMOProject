@@ -78,7 +78,7 @@ Character Count: %d\n\
 Character Pool Use: %d\n\
 Packet Pool Use: %d\n\
 ------------------------------------\n\
-Total Accept: %d\n\
+Total Accept: %lld\n\
 Accept TPS: %d\n\
 Recv TPS: %d\n\
 Send TPS: %d\n\

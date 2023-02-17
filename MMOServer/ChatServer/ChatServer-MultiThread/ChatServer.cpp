@@ -28,7 +28,10 @@ bool ChatServer::Start(const wchar_t* ipaddress, int port, int workerCreateCnt, 
 	// Network IO Start
 	//--------------------------------------------------------------------
 	if (!NetServer::Start(ipaddress, port, workerCreateCnt, workerRunningCnt, sessionMax, packetCode, packetKey, timeoutSec, nagle))
+	{
+		Release();
 		return false;
+	}
 
 	return true;
 }

@@ -80,7 +80,7 @@ Packet Pool Use: %d\n\
 Job Pool Use: %d\n\
 Job Queue Count: %d\n\
 ------------------------------------\n\
-Total Accept: %d\n\
+Total Accept: %lld\n\
 Accept TPS: %d\n\
 Recv TPS: %d\n\
 Send TPS: %d\n\

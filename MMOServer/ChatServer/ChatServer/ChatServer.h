@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <list>
 #include <thread>
+#include <cpp_redis/cpp_redis>
 
 typedef DWORD64 SESSION_ID;
 
@@ -16,9 +17,11 @@ class ChatServer : public Jay::NetServer
 private:
 	enum JOB_TYPE
 	{
-		JOIN = 0,
-		RECV,
-		LEAVE
+		JOB_TYPE_CLIENT_JOIN = 0,
+		JOB_TYPE_CLIENT_LEAVE,
+		JOB_TYPE_PACKET_RECV,
+		JOB_TYPE_LOGIN_SUCCESS,
+		JOB_TYPE_LOGIN_FAIL,
 	};
 	struct JOB
 	{
@@ -49,6 +52,7 @@ private:
 	void JoinProc(DWORD64 sessionID);
 	void RecvProc(DWORD64 sessionID, Jay::NetPacket* packet);
 	void LeaveProc(DWORD64 sessionID);
+	void LoginProc(DWORD64 sessionID, bool result);
 private:
 	CHARACTER* NewCharacter(DWORD64 sessionID);
 	void DeleteCharacter(DWORD64 sessionID);
@@ -73,4 +77,5 @@ private:
 	HANDLE _hExitEvent;
 	std::thread _updateThread;
 	std::list<CHARACTER*> _sectorList[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
+	cpp_redis::client _memorydb;
 };

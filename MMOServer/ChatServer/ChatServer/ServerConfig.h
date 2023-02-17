@@ -17,7 +17,11 @@ public:
 	static int GetLogLevel() { return _serverInfo.logLevel; }
 	static const wchar_t* GetLogPath() { return _serverInfo.logPath; }
 	static int GetSessionTimeoutSec() { return _serviceInfo.timeoutSec; }
+	static const wchar_t* GetRedisIP() { return _databaseInfo.redis_ip; }
+	static int GetRedisPort() { return _databaseInfo.redis_port; }
+	static int GetRedisTimeout() { return _databaseInfo.redis_timeout; }
 private:
 	static SERVER_INFO _serverInfo;
 	static SERVICE_INFO _serviceInfo;
+	static DATABASE_INFO _databaseInfo;
 };

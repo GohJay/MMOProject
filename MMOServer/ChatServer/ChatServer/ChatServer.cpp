@@ -2,11 +2,15 @@
 #include "ChatServer.h"
 #include "ServerConfig.h"
 #include "Packet.h"
+#include <vector>
 #include "../../Common/Logger.h"
 #include "../../Common/CrashDump.h"
+#include "../../Common/StringUtil.h"
 #include "../../Lib/Network/include/Error.h"
 #include "../../Lib/Network/include/NetException.h"
 #pragma comment(lib, "../../Lib/Network/lib64/Network.lib")
+#pragma comment(lib, "../../Lib/Redis/lib64/tacopie.lib")
+#pragma comment(lib, "../../Lib/Redis/lib64/cpp_redis.lib")
 
 using namespace Jay;
 
@@ -28,22 +32,15 @@ bool ChatServer::Start(const wchar_t* ipaddress, int port, int workerCreateCnt, 
 	// Network IO Start
 	//--------------------------------------------------------------------
 	if (!NetServer::Start(ipaddress, port, workerCreateCnt, workerRunningCnt, sessionMax, packetCode, packetKey, timeoutSec, nagle))
+	{
+		Release();
 		return false;
+	}
 
-	//--------------------------------------------------------------------
-	// UpdateThread Begin
-	//--------------------------------------------------------------------
-	_updateThread = std::thread(&ChatServer::UpdateThread, this);
 	return true;
 }
 void ChatServer::Stop()
 {
-	//--------------------------------------------------------------------
-	// UpdateThread End
-	//--------------------------------------------------------------------
-	SetEvent(_hExitEvent);
-	_updateThread.join();
-
 	//--------------------------------------------------------------------
 	// Network IO Stop
 	//--------------------------------------------------------------------
@@ -80,7 +77,7 @@ void ChatServer::OnClientJoin(DWORD64 sessionID)
 	// 오브젝트풀에서 Job 할당
 	//--------------------------------------------------------------------
 	JOB* job = _jobPool.Alloc();
-	job->type = JOIN;
+	job->type = JOB_TYPE_CLIENT_JOIN;
 	job->sessionID = sessionID;
 
 	//--------------------------------------------------------------------
@@ -99,7 +96,7 @@ void ChatServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
 	// 오브젝트풀에서 Job 할당
 	//--------------------------------------------------------------------
 	JOB* job = _jobPool.Alloc();
-	job->type = RECV;
+	job->type = JOB_TYPE_PACKET_RECV;
 	job->sessionID = sessionID;
 	job->packet = packet;
 
@@ -120,7 +117,7 @@ void ChatServer::OnClientLeave(DWORD64 sessionID)
 	// 오브젝트풀에서 Job 할당
 	//--------------------------------------------------------------------
 	JOB* job = _jobPool.Alloc();
-	job->type = LEAVE;
+	job->type = JOB_TYPE_CLIENT_LEAVE;
 	job->sessionID = sessionID;
 
 	//--------------------------------------------------------------------
@@ -162,10 +159,32 @@ bool ChatServer::Initial()
 		return false;
 	}
 
+	//--------------------------------------------------------------------
+	// Redis Connect
+	//--------------------------------------------------------------------
+	std::string redisIP;
+	UnicodeToString(ServerConfig::GetRedisIP(), redisIP);
+	_memorydb.connect(redisIP, ServerConfig::GetRedisPort());
+
+	//--------------------------------------------------------------------
+	// UpdateThread Begin
+	//--------------------------------------------------------------------
+	_updateThread = std::thread(&ChatServer::UpdateThread, this);
 	return true;
 }
 void ChatServer::Release()
 {
+	//--------------------------------------------------------------------
+	// UpdateThread End
+	//--------------------------------------------------------------------
+	SetEvent(_hExitEvent);
+	_updateThread.join();
+
+	//--------------------------------------------------------------------
+	// Redis Disconnect
+	//--------------------------------------------------------------------
+	_memorydb.disconnect();
+
 	CHARACTER* character;
 	for (auto iter = _characterMap.begin(); iter != _characterMap.end();)
 	{
@@ -178,7 +197,7 @@ void ChatServer::Release()
 	while (_jobQ.size() > 0)
 	{
 		_jobQ.Dequeue(job);
-		if (job->type == RECV)
+		if (job->type == JOB_TYPE_PACKET_RECV)
 			NetPacket::Free(job->packet);
 		_jobPool.Free(job);
 	}
@@ -209,14 +228,20 @@ void ChatServer::UpdateThread()
 			//--------------------------------------------------------------------
 			switch (job->type)
 			{
-			case JOIN:
+			case JOB_TYPE_CLIENT_JOIN:
 				JoinProc(job->sessionID);
 				break;
-			case RECV:
+			case JOB_TYPE_CLIENT_LEAVE:
+				LeaveProc(job->sessionID);
+				break;
+			case JOB_TYPE_PACKET_RECV:
 				RecvProc(job->sessionID, job->packet);
 				break;
-			case LEAVE:
-				LeaveProc(job->sessionID);
+			case JOB_TYPE_LOGIN_SUCCESS:
+				LoginProc(job->sessionID, true);
+				break;
+			case JOB_TYPE_LOGIN_FAIL:
+				LoginProc(job->sessionID, false);
 				break;
 			default:
 				break;
@@ -273,6 +298,36 @@ void ChatServer::LeaveProc(DWORD64 sessionID)
 	// 연결 종료한 세션의 캐릭터 제거
 	//--------------------------------------------------------------------
 	DeleteCharacter(sessionID);
+}
+void ChatServer::LoginProc(DWORD64 sessionID, bool result)
+{
+	//--------------------------------------------------------------------
+	// 로그인 완료 처리
+	//--------------------------------------------------------------------
+	CHARACTER* character = FindCharacter(sessionID);
+	if (character->login)
+	{
+		Disconnect(sessionID);
+		return;
+	}
+
+	character->login = true;
+
+	//--------------------------------------------------------------------
+	// 오브젝트풀에서 직렬화 버퍼 할당
+	//--------------------------------------------------------------------
+	NetPacket* resPacket = NetPacket::Alloc();
+
+	//--------------------------------------------------------------------
+	// 해당 유저에게 로그인 완료 메시지 보내기
+	//--------------------------------------------------------------------
+	Packet::MakeChatLogin(resPacket, result, character->accountNo);
+	SendPacket(character->sessionID, resPacket);
+
+	//--------------------------------------------------------------------
+	// 오브젝트풀에 직렬화 버퍼 반납
+	//--------------------------------------------------------------------
+	NetPacket::Free(resPacket);
 }
 CHARACTER* ChatServer::NewCharacter(DWORD64 sessionID)
 {
@@ -369,27 +424,43 @@ bool ChatServer::PacketProc_ChatLogin(DWORD64 sessionID, NetPacket* packet)
 	if (character->login)
 		return false;
 
-	character->login = true;
 	character->accountNo = accountNo;
 	wcscpy_s(character->id, sizeof(id) / 2, id);
 	wcscpy_s(character->nickname, sizeof(nickname) / 2, nickname);
 	memmove(character->sessionKey, sessionKey, sizeof(sessionKey));
 
 	//--------------------------------------------------------------------
-	// 오브젝트풀에서 직렬화 버퍼 할당
+	// Redis 에서 세션 토큰 얻기 (Key: AccountNo, Value: SessionKey)
 	//--------------------------------------------------------------------
-	NetPacket* resPacket = NetPacket::Alloc();
+	std::string key(std::to_string(accountNo));
+	std::string token(sessionKey, sizeof(sessionKey));
+	_memorydb.get(key, [this, sessionID, sessionKey = std::move(token)](cpp_redis::reply& reply) {
+		//--------------------------------------------------------------------
+		// 오브젝트풀에서 Job 할당
+		//--------------------------------------------------------------------
+		JOB* job = _jobPool.Alloc();
+		job->type = (sessionKey == reply.as_string()) ? JOB_TYPE_LOGIN_SUCCESS : JOB_TYPE_LOGIN_FAIL;
+		job->sessionID = sessionID;
+
+		//--------------------------------------------------------------------
+		// Job 큐잉
+		//--------------------------------------------------------------------
+		_jobQ.Enqueue(job);
+
+		//--------------------------------------------------------------------
+		// UpdateThread 에게 Job 이벤트 알림
+		//--------------------------------------------------------------------
+		SetEvent(_hJobEvent);
+	});
 
 	//--------------------------------------------------------------------
-	// 해당 유저에게 로그인 완료 메시지 보내기
+	// Redis 에서 세션 토큰 제거
 	//--------------------------------------------------------------------
-	Packet::MakeChatLogin(resPacket, true, character->accountNo);
-	SendPacket(character->sessionID, resPacket);
+	std::vector<std::string> vectKey(1);
+	vectKey.emplace_back(std::move(key));
+	_memorydb.del(vectKey);
 
-	//--------------------------------------------------------------------
-	// 오브젝트풀에 직렬화 버퍼 반납
-	//--------------------------------------------------------------------
-	NetPacket::Free(resPacket);
+	_memorydb.commit();
 	return true;
 }
 bool ChatServer::PacketProc_ChatSectorMove(DWORD64 sessionID, NetPacket* packet)

@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <list>
 #include <thread>
+#include <cpp_redis/cpp_redis>
 
 typedef std::wstring WHITE_IP;
 
@@ -38,6 +39,7 @@ private:
 private:
 	Jay::DBConnector_TLS _accountdb;
 	std::unordered_set<WHITE_IP> _whiteIPTable;
+	cpp_redis::client _memorydb;
 	bool _serviceMode;
 };
 

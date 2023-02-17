@@ -112,7 +112,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\ChatServer-MultiThread\Config.cnf">
+    <None Include="Config.cnf">
       <Filter>Config</Filter>
     </None>
   </ItemGroup>

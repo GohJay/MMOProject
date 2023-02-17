@@ -40,11 +40,18 @@ struct SERVICE_INFO
 struct DATABASE_INFO
 {
 	//-----------------------------------
-	// 데이터베이스 접속 정보
+	// MySQL 접속 정보
 	//-----------------------------------
 	wchar_t ip[16];
 	int port;
 	wchar_t user[32];
 	wchar_t passwd[32];
 	wchar_t schema[32];
+
+	//-----------------------------------
+	// Redis 접속 정보
+	//-----------------------------------
+	wchar_t redis_ip[16];
+	int redis_port;
+	int redis_timeout;
 };

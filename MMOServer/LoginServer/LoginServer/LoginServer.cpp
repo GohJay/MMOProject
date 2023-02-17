@@ -9,6 +9,8 @@
 #include "../../Lib/Network/include/NetException.h"
 #pragma comment(lib, "../../Lib/Network/lib64/Network.lib")
 #pragma comment(lib, "../../Lib/MySQL/lib64/vs14/mysqlcppconn-static.lib")
+#pragma comment(lib, "../../Lib/Redis/lib64/tacopie.lib")
+#pragma comment(lib, "../../Lib/Redis/lib64/cpp_redis.lib")
 
 using namespace Jay;
 
@@ -30,8 +32,11 @@ bool LoginServer::Start(const wchar_t* ipaddress, int port, int workerCreateCnt,
 	// Network IO Start
 	//--------------------------------------------------------------------
 	if (!NetServer::Start(ipaddress, port, workerCreateCnt, workerRunningCnt, sessionMax, packetCode, packetKey, timeoutSec, nagle))
+	{
+		Release();
 		return false;
-
+	}
+	
 	return true;
 }
 void LoginServer::Stop()
@@ -97,6 +102,10 @@ void LoginServer::OnError(int errcode, const wchar_t* funcname, int linenum, WPA
 }
 bool LoginServer::Initial()
 {
+	std::string redisIP;
+	UnicodeToString(ServerConfig::GetRedisIP(), redisIP);
+	_memorydb.connect(redisIP, ServerConfig::GetRedisPort());
+
 	_accountdb.SetProperty(ServerConfig::GetDatabaseIP()
 		, ServerConfig::GetDatabasePort()
 		, ServerConfig::GetDatabaseUser()
@@ -108,16 +117,15 @@ bool LoginServer::Initial()
 }
 void LoginServer::Release()
 {
+	_memorydb.disconnect();
 }
 void LoginServer::FetchWhiteIPList()
 {
-	std::wstring ip;
-	sql::ResultSet* res;
-
 	//--------------------------------------------------------------------
 	// DB 에서 White IP 목록 가져오기
 	//--------------------------------------------------------------------
-	res = _accountdb.ExecuteQuery(L"SELECT ip FROM whiteip LIMIT 10");
+	std::wstring ip;
+	sql::ResultSet* res = _accountdb.ExecuteQuery(L"SELECT ip FROM whiteip LIMIT 10;");
 	while (res->next())
 	{
 		MultiByteToWString(res->getString(1).c_str(), ip);
@@ -162,6 +170,9 @@ bool LoginServer::PacketProc_Login(DWORD64 sessionID, NetPacket* packet)
 	if (packet->GetData(sessionKey, sizeof(sessionKey)) != sizeof(sessionKey))
 		return false;
 
+	//--------------------------------------------------------------------
+	// DB 에서 유저 정보 조회
+	//--------------------------------------------------------------------
 	INT64 db_accountNo;
 	char db_sessionKey[64];
 	int db_status;
@@ -171,19 +182,27 @@ bool LoginServer::PacketProc_Login(DWORD64 sessionID, NetPacket* packet)
 	db_userID.reserve(20);
 	db_userNick.reserve(20);
 
-	BYTE status;
-	sql::ResultSet* res;
+	sql::ResultSet* res = _accountdb.ExecuteQuery(L"SELECT\
+`a`.`accountno` AS `accountno`,\
+`a`.`userid` AS `userid`,\
+`a`.`usernick` AS `usernick`,\
+`b`.`sessionkey` AS `sessionkey`,\
+`c`.`status` AS `status`\
+FROM ((`account` `a`\
+LEFT JOIN `sessionkey` `b` ON((`a`.`accountno` = `b`.`accountno`)))\
+LEFT JOIN `status` `c` ON((`a`.`accountno` = `c`.`accountno`)))\
+WHERE a.`accountno` = %lld;", accountNo);
 
-	//--------------------------------------------------------------------
-	// DB 에서 유저 정보 조회
-	//--------------------------------------------------------------------
-	res = _accountdb.ExecuteQuery(L"SELECT accountno, userid, usernick, sessionkey, status FROM v_account WHERE accountno = %lld", accountNo);
+	BYTE status;
 	if (res->next())
 	{
 		db_accountNo = res->getInt64(1);
 		MultiByteToWString(res->getString(2).c_str(), db_userID);
 		MultiByteToWString(res->getString(3).c_str(), db_userNick);
-		strncpy_s(db_sessionKey, res->getString(4).c_str(), sizeof(db_sessionKey));
+		int size = sizeof(db_sessionKey);
+		if (size > res->getString(4).length())
+			size = res->getString(4).length();
+		memmove(db_sessionKey, res->getString(4).c_str(), size);
 		db_status = res->getInt(5);
 
 		status = dfLOGIN_STATUS_OK;
@@ -193,6 +212,17 @@ bool LoginServer::PacketProc_Login(DWORD64 sessionID, NetPacket* packet)
 		status = dfLOGIN_STATUS_FAIL;
 	}
 	_accountdb.ClearQuery(res);
+
+	//--------------------------------------------------------------------
+	// Redis 에 세션 토큰 저장 (Key: AccountNo, Value: SessionKey)
+	//--------------------------------------------------------------------
+	if (status == dfLOGIN_STATUS_OK)
+	{
+		std::string key(std::to_string(accountNo));
+		std::string token(sessionKey, sizeof(sessionKey));
+		_memorydb.setex(key, ServerConfig::GetRedisTimeout(), token);
+		_memorydb.sync_commit();
+	}
 
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 직렬화 버퍼 할당
