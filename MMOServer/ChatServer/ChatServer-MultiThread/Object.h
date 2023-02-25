@@ -1,6 +1,5 @@
 #pragma once
 #include "Define.h"
-#include "../../Common/Lock.h"
 #include <Windows.h>
 
 struct SECTOR
@@ -15,14 +14,18 @@ struct SECTOR_AROUND
 	SECTOR around[9];
 };
 
-struct CHARACTER
+struct USER
 {
 	DWORD64 sessionID;
 	INT64 accountNo;
 	WCHAR id[20];
 	WCHAR nickname[20];
-	char sessionKey[64];
 	bool login;
+};
+
+struct PLAYER
+{
+	DWORD64 sessionID;
+	INT64 accountNo;
 	SECTOR sector;
-	Jay::SRWLock lock;
 };

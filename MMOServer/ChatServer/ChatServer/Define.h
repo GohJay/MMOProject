@@ -4,7 +4,7 @@
 #define dfSECTOR_MAX_Y			50 + 1
 #define dfUNKNOWN_SECTOR		-1
 
-struct SERVER_INFO
+struct SERVER
 {
 	//-----------------------------------
 	// Listen IP / PORT
@@ -23,26 +23,35 @@ struct SERVER_INFO
 	BYTE packetKey;
 
 	//-----------------------------------
+	// 미응답 유저 타임아웃 처리 (초 단위)
+	//-----------------------------------
+	int timeoutSec;
+};
+
+struct CLIENT
+{
+	//-----------------------------------
+	// MonitorServer Connect IP / PORT
+	//-----------------------------------
+	wchar_t ip[16];
+	int port;
+	bool reconnect;
+};
+
+struct SYSTEM
+{
+	//-----------------------------------
 	// System Log
 	//-----------------------------------
 	int logLevel;
 	wchar_t logPath[MAX_PATH / 2];
 };
 
-struct SERVICE_INFO
-{
-	//-----------------------------------
-	// 미응답 유저 타임아웃 처리 (초 단위)
-	//-----------------------------------
-	int timeoutSec;
-};
-
-struct DATABASE_INFO
+struct DATABASE
 {
 	//-----------------------------------
 	// Redis 접속 정보
 	//-----------------------------------
 	wchar_t redis_ip[16];
 	int redis_port;
-	int redis_timeout;
 };

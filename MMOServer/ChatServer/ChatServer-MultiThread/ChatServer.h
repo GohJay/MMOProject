@@ -11,6 +11,7 @@
 #include <thread>
 
 typedef DWORD64 SESSION_ID;
+typedef INT64 ACCOUNT_NO;
 
 class ChatServer : public Jay::NetServer
 {
@@ -20,8 +21,10 @@ public:
 public:
 	bool Start(const wchar_t* ipaddress, int port, int workerCreateCnt, int workerRunningCnt, WORD sessionMax, BYTE packetCode, BYTE packetKey, int timeoutSec = 0, bool nagle = true);
 	void Stop();
-	int GetCharacterCount();
-	int GetUseCharacterPool();
+	int GetUserCount();
+	int GetPlayerCount();
+	int GetUseUserPool();
+	int GetUsePlayerPool();
 private:
 	bool OnConnectionRequest(const wchar_t* ipaddress, int port) override;
 	void OnClientJoin(DWORD64 sessionID) override;
@@ -32,26 +35,32 @@ private:
 	bool Initial();
 	void Release();
 private:
-	CHARACTER* NewCharacter(DWORD64 sessionID);
-	void DeleteCharacter(DWORD64 sessionID);
-	CHARACTER* FindCharacter(DWORD64 sessionID);
+	USER* NewUser(DWORD64 sessionID);
+	void DeleteUser(DWORD64 sessionID);
+	USER* FindUser(INT64 sessionID);
+	PLAYER* NewPlayer(DWORD64 sessionID, INT64 accountNo);
+	void DeletePlayer(INT64 accountNo);
+	PLAYER* FindPlayer(INT64 accountNo);
+	bool IsMovablePlayer(int sectorX, int sectorY);
+	void AddPlayer_Sector(PLAYER* player, int sectorX, int sectorY);
+	void RemovePlayer_Sector(PLAYER* player);
+	void UpdatePlayer_Sector(PLAYER* player, int sectorX, int sectorY);
+	void GetSectorAround(int sectorX, int sectorY, SECTOR_AROUND* sectorAround);
+	void SendSectorOne(Jay::NetPacket* packet, int sectorX, int sectorY);
+	void SendSectorAround(PLAYER* player, Jay::NetPacket* packet);
+	void LockSectorAround(SECTOR_AROUND* sectorAround);
+	void UnLockSectorAround(SECTOR_AROUND* sectorAround);
+private:
 	bool PacketProc(DWORD64 sessionID, Jay::NetPacket* packet, WORD type);
 	bool PacketProc_ChatLogin(DWORD64 sessionID, Jay::NetPacket* packet);
 	bool PacketProc_ChatSectorMove(DWORD64 sessionID, Jay::NetPacket* packet);
 	bool PacketProc_ChatMessage(DWORD64 sessionID, Jay::NetPacket* packet);
-	bool IsMovableCharacter(int sectorX, int sectorY);
-	void AddCharacter_Sector(CHARACTER* character, int sectorX, int sectorY);
-	void RemoveCharacter_Sector(CHARACTER* character);
-	void UpdateCharacter_Sector(CHARACTER* character, int sectorX, int sectorY);
-	void GetSectorAround(int sectorX, int sectorY, SECTOR_AROUND* sectorAround);
-	void SendSectorOne(Jay::NetPacket* packet, int sectorX, int sectorY);
-	void SendSectorAround(CHARACTER* character, Jay::NetPacket* packet);
-	void LockSectorAround(SECTOR_AROUND* sectorAround);
-	void UnLockSectorAround(SECTOR_AROUND* sectorAround);
 private:
-	std::unordered_map<SESSION_ID, CHARACTER*> _characterMap;
-	Jay::SRWLock _characterMapLock;
-	Jay::ObjectPool_TLS<CHARACTER> _characterPool;
-	std::list<CHARACTER*> _sectorList[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
+	std::unordered_map<SESSION_ID, USER*> _userMap;
+	std::unordered_map<SESSION_ID, PLAYER*> _playerMap;
+	Jay::SRWLock _mapLock;
+	Jay::ObjectPool_TLS<USER> _userPool;
+	Jay::ObjectPool_TLS<PLAYER> _playerPool;
+	std::list<PLAYER*> _sectorList[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
 	Jay::SRWLock _sectorLockTable[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
 };

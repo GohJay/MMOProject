@@ -2,10 +2,12 @@
 #include "../../Common/CrashDump.h"
 #include "../../Common/Logger.h"
 #include "ChatServer.h"
+#include "MonitorClient.h"
 #include "ServerConfig.h"
 #pragma comment(lib, "Winmm.lib")
 
-ChatServer g_Server;
+ChatServer g_ChatServer;
+MonitorClient g_MonitorClient(&g_ChatServer);
 bool g_StopSignal = false;
 bool g_ControlMode = false;
 
@@ -32,8 +34,8 @@ void Run()
 	if (!Init())
 		return;
 
-	if (!g_Server.Start(ServerConfig::GetServerIP()
-		, ServerConfig::GetServerPort()
+	if (!g_ChatServer.Start(ServerConfig::GetChatServerIP()
+		, ServerConfig::GetChatServerPort()
 		, ServerConfig::GetIOCPWorkerCreate()
 		, ServerConfig::GetIOCPWorkerRunning()
 		, ServerConfig::GetSessionMax()
@@ -49,7 +51,7 @@ void Run()
 		Sleep(1000);
 	}
 
-	g_Server.Stop();
+	g_ChatServer.Stop();
 }
 
 bool Init()
@@ -72,31 +74,38 @@ void Monitor()
 	wprintf_s(L"\
 [%d/%02d/%02d %02d:%02d:%02d]\n\
 ------------------------------------\n\
-Session Count: %d\n\
-Character Count: %d\n\
-------------------------------------\n\
-Character Pool Use: %d\n\
 Packet Pool Use: %d\n\
-Job Pool Use: %d\n\
-Job Queue Count: %d\n\
+Session Count: %d\n\
+------------------------------------\n\
+User Count: %d\n\
+User Pool Use: %d\n\
+Player Count: %d\n\
+Player Pool Use: %d\n\
 ------------------------------------\n\
 Total Accept: %lld\n\
 Accept TPS: %d\n\
 Recv TPS: %d\n\
 Send TPS: %d\n\
 ------------------------------------\n\
-\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+Update TPS: %d\n\
+Job Queue Count: %d\n\
+Job Pool Use: %d\n\
+------------------------------------\n\
+\n\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
-		, g_Server.GetSessionCount()
-		, g_Server.GetCharacterCount()
-		, g_Server.GetUseCharacterPool()
-		, g_Server.GetUsePacketCount()
-		, g_Server.GetUseJobPool()
-		, g_Server.GetJobQueueCount()
-		, g_Server.GetTotalAcceptCount()
-		, g_Server.GetAcceptTPS()
-		, g_Server.GetRecvTPS()
-		, g_Server.GetSendTPS());
+		, g_ChatServer.GetUsePacketCount()
+		, g_ChatServer.GetSessionCount()
+		, g_ChatServer.GetUserCount()
+		, g_ChatServer.GetUseUserPool()
+		, g_ChatServer.GetPlayerCount()
+		, g_ChatServer.GetUsePlayerPool()
+		, g_ChatServer.GetTotalAcceptCount()
+		, g_ChatServer.GetAcceptTPS()
+		, g_ChatServer.GetRecvTPS()
+		, g_ChatServer.GetSendTPS()
+		, g_ChatServer.GetUpdateTPS()
+		, g_ChatServer.GetJobQueueCount()
+		, g_ChatServer.GetUseJobPool());
 }
 
 void Control()

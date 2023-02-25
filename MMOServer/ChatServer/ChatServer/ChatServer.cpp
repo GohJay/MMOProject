@@ -14,7 +14,7 @@
 
 using namespace Jay;
 
-ChatServer::ChatServer() : _characterPool(0), _jobPool(0)
+ChatServer::ChatServer() : _userPool(0), _playerPool(0), _jobPool(0)
 {
 }
 ChatServer::~ChatServer()
@@ -51,13 +51,21 @@ void ChatServer::Stop()
 	//--------------------------------------------------------------------
 	Release();
 }
-int ChatServer::GetCharacterCount()
+int ChatServer::GetUserCount()
 {
-	return _characterMap.size();
+	return _userMap.size();
 }
-int ChatServer::GetUseCharacterPool()
+int ChatServer::GetPlayerCount()
 {
-	return _characterPool.GetUseCount();
+	return _playerMap.size();
+}
+int ChatServer::GetUseUserPool()
+{
+	return _userPool.GetUseCount();
+}
+int ChatServer::GetUsePlayerPool()
+{
+	return _playerPool.GetUseCount();
 }
 int ChatServer::GetJobQueueCount()
 {
@@ -66,6 +74,10 @@ int ChatServer::GetJobQueueCount()
 int ChatServer::GetUseJobPool()
 {
 	return _jobPool.GetUseCount();
+}
+int ChatServer::GetUpdateTPS()
+{
+	return _oldUpdateTPS;
 }
 bool ChatServer::OnConnectionRequest(const wchar_t* ipaddress, int port)
 {
@@ -76,7 +88,7 @@ void ChatServer::OnClientJoin(DWORD64 sessionID)
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 Job 할당
 	//--------------------------------------------------------------------
-	JOB* job = _jobPool.Alloc();
+	CHAT_JOB* job = _jobPool.Alloc();
 	job->type = JOB_TYPE_CLIENT_JOIN;
 	job->sessionID = sessionID;
 
@@ -95,8 +107,8 @@ void ChatServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 Job 할당
 	//--------------------------------------------------------------------
-	JOB* job = _jobPool.Alloc();
-	job->type = JOB_TYPE_PACKET_RECV;
+	CHAT_JOB* job = _jobPool.Alloc();
+	job->type = JOB_TYPE_MESSAGE_RECV;
 	job->sessionID = sessionID;
 	job->packet = packet;
 
@@ -116,7 +128,7 @@ void ChatServer::OnClientLeave(DWORD64 sessionID)
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 Job 할당
 	//--------------------------------------------------------------------
-	JOB* job = _jobPool.Alloc();
+	CHAT_JOB* job = _jobPool.Alloc();
 	job->type = JOB_TYPE_CLIENT_LEAVE;
 	job->sessionID = sessionID;
 
@@ -167,33 +179,43 @@ bool ChatServer::Initial()
 	_memorydb.connect(redisIP, ServerConfig::GetRedisPort());
 
 	//--------------------------------------------------------------------
-	// UpdateThread Begin
+	// Thread Begin
 	//--------------------------------------------------------------------
 	_updateThread = std::thread(&ChatServer::UpdateThread, this);
+	_managementThread = std::thread(&ChatServer::ManagementThread, this);
 	return true;
 }
 void ChatServer::Release()
 {
 	//--------------------------------------------------------------------
-	// UpdateThread End
+	// Thread End
 	//--------------------------------------------------------------------
 	SetEvent(_hExitEvent);
 	_updateThread.join();
+	_managementThread.join();
 
 	//--------------------------------------------------------------------
 	// Redis Disconnect
 	//--------------------------------------------------------------------
 	_memorydb.disconnect();
 
-	CHARACTER* character;
-	for (auto iter = _characterMap.begin(); iter != _characterMap.end();)
+	USER* user;
+	for (auto iter = _userMap.begin(); iter != _userMap.end();)
 	{
-		character = iter->second;
-		_characterPool.Free(character);
-		iter = _characterMap.erase(iter);
+		user = iter->second;
+		_userPool.Free(user);
+		iter = _userMap.erase(iter);
 	}
 
-	JOB* job;
+	PLAYER* player;
+	for (auto iter = _playerMap.begin(); iter != _playerMap.end();)
+	{
+		player = iter->second;
+		_playerPool.Free(player);
+		iter = _playerMap.erase(iter);
+	}
+
+	CHAT_JOB* job;
 	while (_jobQ.size() > 0)
 	{
 		_jobQ.Dequeue(job);
@@ -215,7 +237,7 @@ void ChatServer::UpdateThread()
 		if ((ret - WAIT_OBJECT_0) != 0)
 			break;
 
-		JOB* job;
+		CHAT_JOB* job;
 		while (_jobQ.size() > 0)
 		{
 			//--------------------------------------------------------------------
@@ -234,7 +256,7 @@ void ChatServer::UpdateThread()
 			case JOB_TYPE_CLIENT_LEAVE:
 				LeaveProc(job->sessionID);
 				break;
-			case JOB_TYPE_PACKET_RECV:
+			case JOB_TYPE_MESSAGE_RECV:
 				RecvProc(job->sessionID, job->packet);
 				break;
 			case JOB_TYPE_LOGIN_SUCCESS:
@@ -251,24 +273,48 @@ void ChatServer::UpdateThread()
 			// 오브젝트풀에 Job 반납
 			//--------------------------------------------------------------------
 			_jobPool.Free(job);
+
+			_curUpdateTPS++;
 		}
 	}
+}
+void ChatServer::ManagementThread()
+{
+	DWORD ret;
+	while (1)
+	{
+		ret = WaitForSingleObject(_hExitEvent, 1000);
+		switch (ret)
+		{
+		case WAIT_OBJECT_0:
+			return;
+		case WAIT_TIMEOUT:
+			UpdateTPS();
+			break;
+		default:
+			break;
+		}
+	}
+}
+void ChatServer::UpdateTPS()
+{
+	_oldUpdateTPS.exchange(_curUpdateTPS.exchange(0));
 }
 void ChatServer::JoinProc(DWORD64 sessionID)
 {
 	//--------------------------------------------------------------------
 	// 현재 접속자 수를 확인하여 Join 여부 판단
 	//--------------------------------------------------------------------
-	if (_characterMap.size() >= ServerConfig::GetUserMax())
+	if (_userMap.size() >= ServerConfig::GetUserMax())
 	{
 		Disconnect(sessionID);
 		return;
 	}
 
 	//--------------------------------------------------------------------
-	// 새로 연결된 세션에 대한 캐릭터 할당
+	// 새로 연결된 세션에 대한 객체 할당
 	//--------------------------------------------------------------------
-	NewCharacter(sessionID);
+	NewUser(sessionID);
 }
 void ChatServer::RecvProc(DWORD64 sessionID, NetPacket* packet)
 {
@@ -295,23 +341,27 @@ void ChatServer::RecvProc(DWORD64 sessionID, NetPacket* packet)
 void ChatServer::LeaveProc(DWORD64 sessionID)
 {
 	//--------------------------------------------------------------------
-	// 연결 종료한 세션의 캐릭터 제거
+	// 연결 종료한 세션의 객체 제거
 	//--------------------------------------------------------------------
-	DeleteCharacter(sessionID);
+	USER* user = FindUser(sessionID);
+	if (user->login)
+		DeletePlayer(user->accountNo);
+	DeleteUser(sessionID);
 }
 void ChatServer::LoginProc(DWORD64 sessionID, bool result)
 {
 	//--------------------------------------------------------------------
 	// 로그인 완료 처리
 	//--------------------------------------------------------------------
-	CHARACTER* character = FindCharacter(sessionID);
-	if (character->login)
+	USER* user = FindUser(sessionID);
+	if (user->login)
 	{
 		Disconnect(sessionID);
 		return;
 	}
 
-	character->login = true;
+	NewPlayer(user->sessionID, user->accountNo);
+	user->login = true;
 
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 직렬화 버퍼 할당
@@ -321,55 +371,163 @@ void ChatServer::LoginProc(DWORD64 sessionID, bool result)
 	//--------------------------------------------------------------------
 	// 해당 유저에게 로그인 완료 메시지 보내기
 	//--------------------------------------------------------------------
-	Packet::MakeChatLogin(resPacket, result, character->accountNo);
-	SendPacket(character->sessionID, resPacket);
+	Packet::MakeChatLogin(resPacket, result, user->accountNo);
+	SendPacket(user->sessionID, resPacket);
 
 	//--------------------------------------------------------------------
 	// 오브젝트풀에 직렬화 버퍼 반납
 	//--------------------------------------------------------------------
 	NetPacket::Free(resPacket);
 }
-CHARACTER* ChatServer::NewCharacter(DWORD64 sessionID)
+USER* ChatServer::NewUser(DWORD64 sessionID)
 {
-	CHARACTER* character;
-
-	character = _characterPool.Alloc();
-	character->sessionID = sessionID;
-	character->login = false;
-	character->sector.x = dfUNKNOWN_SECTOR;
-	character->sector.y = dfUNKNOWN_SECTOR;
-
-	_characterMap.insert({ sessionID, character });
-	return character;
+	USER* user = _userPool.Alloc();
+	user->sessionID = sessionID;
+	user->login = false;
+	
+	_userMap.insert({ sessionID, user });
+	return user;
 }
-void ChatServer::DeleteCharacter(DWORD64 sessionID)
+void ChatServer::DeleteUser(DWORD64 sessionID)
 {
-	CHARACTER* character;
-
-	auto iter = _characterMap.find(sessionID);
-	if (iter == _characterMap.end())
-		return;
-
-	character = iter->second;
-	_characterMap.erase(iter);
-
-	if (character->sector.x != dfUNKNOWN_SECTOR && character->sector.y != dfUNKNOWN_SECTOR)
+	USER* user;
+	auto iter = _userMap.find(sessionID);
+	if (iter != _userMap.end())
 	{
-		RemoveCharacter_Sector(character);
+		user = iter->second;
+		_userMap.erase(iter);
+		_userPool.Free(user);
 	}
-	_characterPool.Free(character);
 }
-CHARACTER* ChatServer::FindCharacter(DWORD64 sessionID)
+USER* ChatServer::FindUser(INT64 sessionID)
 {
-	CHARACTER* character;
+	USER* user;
+	auto iter = _userMap.find(sessionID);
+	if (iter != _userMap.end())
+	{
+		user = iter->second;
+		return user;
+	}
+	return nullptr;
+}
+PLAYER* ChatServer::NewPlayer(DWORD64 sessionID, INT64 accountNo)
+{
+	PLAYER* player = _playerPool.Alloc();
+	player->sessionID = sessionID;
+	player->accountNo = accountNo;
+	player->sector.x = dfUNKNOWN_SECTOR;
+	player->sector.y = dfUNKNOWN_SECTOR;
 
-	auto iter = _characterMap.find(sessionID);
-	if (iter == _characterMap.end())
-		character = nullptr;
-	else
-		character = iter->second;
+	_playerMap.insert({ accountNo, player });
+	return player;
+}
+void ChatServer::DeletePlayer(INT64 accountNo)
+{
+	PLAYER* player;
+	auto iter = _playerMap.find(accountNo);
+	if (iter != _playerMap.end())
+	{
+		player = iter->second;
+		_playerMap.erase(iter);
 
-	return character;
+		if (player->sector.x != dfUNKNOWN_SECTOR && player->sector.y != dfUNKNOWN_SECTOR)
+			RemovePlayer_Sector(player);
+
+		_playerPool.Free(player);
+	}
+}
+PLAYER* ChatServer::FindPlayer(INT64 accountNo)
+{
+	PLAYER* player;
+	auto iter = _playerMap.find(accountNo);
+	if (iter != _playerMap.end())
+	{
+		player = iter->second;
+		return player;
+	}
+	return nullptr;
+}
+bool ChatServer::IsMovablePlayer(int sectorX, int sectorY)
+{
+	//--------------------------------------------------------------------
+	// 섹터 좌표 이동 가능여부 확인
+	//--------------------------------------------------------------------
+	if (sectorX < dfSECTOR_MAX_X && sectorY < dfSECTOR_MAX_Y)
+		return true;
+
+	return false;
+}
+void ChatServer::AddPlayer_Sector(PLAYER* player, int sectorX, int sectorY)
+{
+	//--------------------------------------------------------------------
+	// 섹터 리스트에 플레이어 추가
+	//--------------------------------------------------------------------
+	player->sector.x = sectorX;
+	player->sector.y = sectorY;
+	_sectorList[player->sector.y][player->sector.x].push_back(player);
+}
+void ChatServer::RemovePlayer_Sector(PLAYER* player)
+{
+	//--------------------------------------------------------------------
+	// 섹터 리스트에서 플레이어 제거
+	//--------------------------------------------------------------------
+	_sectorList[player->sector.y][player->sector.x].remove(player);
+}
+void ChatServer::UpdatePlayer_Sector(PLAYER* player, int sectorX, int sectorY)
+{
+	if (player->sector.x != dfUNKNOWN_SECTOR && player->sector.y != dfUNKNOWN_SECTOR)
+		RemovePlayer_Sector(player);
+
+	AddPlayer_Sector(player, sectorX, sectorY);
+}
+void ChatServer::GetSectorAround(int sectorX, int sectorY, SECTOR_AROUND* sectorAround)
+{
+	//--------------------------------------------------------------------
+	// 특정 좌표 기준으로 주변 영향권 섹터 얻기
+	//--------------------------------------------------------------------
+	sectorX--;
+	sectorY--;
+
+	sectorAround->count = 0;
+	for (int y = 0; y < 3; y++)
+	{
+		if (sectorY + y < 0 || sectorY + y >= dfSECTOR_MAX_Y)
+			continue;
+
+		for (int x = 0; x < 3; x++)
+		{
+			if (sectorX + x < 0 || sectorX + x >= dfSECTOR_MAX_X)
+				continue;
+
+			sectorAround->around[sectorAround->count].x = sectorX + x;
+			sectorAround->around[sectorAround->count].y = sectorY + y;
+			sectorAround->count++;
+		}
+	}
+}
+void ChatServer::SendSectorOne(NetPacket* packet, int sectorX, int sectorY)
+{
+	//--------------------------------------------------------------------
+	// 특정 섹터에 있는 유저들에게 메시지 보내기
+	//--------------------------------------------------------------------
+	std::list<PLAYER*> *sectorList = &_sectorList[sectorY][sectorX];
+	for (auto iter = sectorList->begin(); iter != sectorList->end(); ++iter)
+	{
+		SendPacket((*iter)->sessionID, packet);
+	}
+}
+void ChatServer::SendSectorAround(PLAYER* player, NetPacket* packet)
+{
+	//--------------------------------------------------------------------
+	// 주변 영향권 섹터에 있는 유저들에게 메시지 보내기
+	//--------------------------------------------------------------------
+	SECTOR_AROUND sectorAround;
+	GetSectorAround(player->sector.x, player->sector.y, &sectorAround);
+
+	for (int i = 0; i < sectorAround.count; i++)
+	{
+		SendSectorOne(packet, sectorAround.around[i].x, sectorAround.around[i].y);
+	}
 }
 bool ChatServer::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
 {
@@ -402,7 +560,7 @@ bool ChatServer::PacketProc_ChatLogin(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 로그인 메시지 처리
 	//--------------------------------------------------------------------
-	CHARACTER* character = FindCharacter(sessionID);
+	USER* user = FindUser(sessionID);
 	INT64 accountNo;
 	WCHAR id[20];
 	WCHAR nickname[20];
@@ -421,13 +579,12 @@ bool ChatServer::PacketProc_ChatLogin(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 이미 로그인한 유저인지 검증
 	//--------------------------------------------------------------------
-	if (character->login)
+	if (user->login)
 		return false;
 
-	character->accountNo = accountNo;
-	wcscpy_s(character->id, sizeof(id) / 2, id);
-	wcscpy_s(character->nickname, sizeof(nickname) / 2, nickname);
-	memmove(character->sessionKey, sessionKey, sizeof(sessionKey));
+	user->accountNo = accountNo;
+	wcscpy_s(user->id, sizeof(id) / 2, id);
+	wcscpy_s(user->nickname, sizeof(nickname) / 2, nickname);
 
 	//--------------------------------------------------------------------
 	// Redis 에서 세션 토큰 얻기 (Key: AccountNo, Value: SessionKey)
@@ -438,15 +595,15 @@ bool ChatServer::PacketProc_ChatLogin(DWORD64 sessionID, NetPacket* packet)
 		//--------------------------------------------------------------------
 		// 오브젝트풀에서 Job 할당
 		//--------------------------------------------------------------------
-		JOB* job = _jobPool.Alloc();
+		CHAT_JOB* job = _jobPool.Alloc();
 		job->type = (sessionKey == reply.as_string()) ? JOB_TYPE_LOGIN_SUCCESS : JOB_TYPE_LOGIN_FAIL;
 		job->sessionID = sessionID;
-
+		
 		//--------------------------------------------------------------------
 		// Job 큐잉
 		//--------------------------------------------------------------------
 		_jobQ.Enqueue(job);
-
+		
 		//--------------------------------------------------------------------
 		// UpdateThread 에게 Job 이벤트 알림
 		//--------------------------------------------------------------------
@@ -468,50 +625,50 @@ bool ChatServer::PacketProc_ChatSectorMove(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 섹터 이동 처리
 	//--------------------------------------------------------------------
-	CHARACTER* character = FindCharacter(sessionID);
 	INT64 accountNo;
 	WORD sectorX;
 	WORD sectorY;
-
 	(*packet) >> accountNo >> sectorX >> sectorY;
 
 	//--------------------------------------------------------------------
 	// 로그인하지 않은 유저인지 검증
 	//--------------------------------------------------------------------
-	if (!character->login)
+	USER* user = FindUser(sessionID);
+	if (!user->login)
 		return false;
 
 	//--------------------------------------------------------------------
 	// 계정 번호 검증
 	//--------------------------------------------------------------------
-	if (character->accountNo != accountNo)
+	if (user->accountNo != accountNo)
 		return false;
 
 	//--------------------------------------------------------------------
 	// 유저가 이동 요청한 좌표가 실제로 이동 가능한 좌표인지 확인
 	//--------------------------------------------------------------------
-	if (!IsMovableCharacter(sectorX, sectorY))
+	if (!IsMovablePlayer(sectorX, sectorY))
 		return false;
 
 	//--------------------------------------------------------------------
 	// 섹터 이동 처리
 	//--------------------------------------------------------------------
-	if (character->sector.x != sectorX || character->sector.y != sectorY)
-		UpdateCharacter_Sector(character, sectorX, sectorY);
+	PLAYER* player = FindPlayer(user->accountNo);
+	if (player->sector.x != sectorX || player->sector.y != sectorY)
+		UpdatePlayer_Sector(player, sectorX, sectorY);
 
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 직렬화 버퍼 할당
 	//--------------------------------------------------------------------
-	NetPacket *resPacket = NetPacket::Alloc();
+	NetPacket* resPacket = NetPacket::Alloc();
 
 	//--------------------------------------------------------------------
 	// 해당 유저에게 섹터 이동 메시지 보내기
 	//--------------------------------------------------------------------
 	Packet::MakeChatSectorMove(resPacket
-		, character->accountNo
-		, character->sector.x
-		, character->sector.y);
-	SendPacket(character->sessionID, resPacket);
+		, player->accountNo
+		, player->sector.x
+		, player->sector.y);
+	SendPacket(player->sessionID, resPacket);
 
 	//--------------------------------------------------------------------
 	// 오브젝트풀에 직렬화 버퍼 반납
@@ -524,25 +681,28 @@ bool ChatServer::PacketProc_ChatMessage(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 채팅 메시지 처리
 	//--------------------------------------------------------------------
-	CHARACTER* character = FindCharacter(sessionID);
 	INT64 accountNo;
 	WORD messageLen;
 	WCHAR message[256];
-
 	(*packet) >> accountNo >> messageLen;
+
 	if (messageLen > sizeof(message))
 		return false;
 
 	if (packet->GetData((char*)message, messageLen) != messageLen)
 		return false;
 
-	if (character->accountNo != accountNo)
-		return false;
-
 	//--------------------------------------------------------------------
 	// 로그인하지 않은 유저인지 검증
 	//--------------------------------------------------------------------
-	if (!character->login)
+	USER* user = FindUser(sessionID);
+	if (!user->login)
+		return false;
+
+	//--------------------------------------------------------------------
+	// 계정 번호 검증
+	//--------------------------------------------------------------------
+	if (user->accountNo != accountNo)
 		return false;
 
 	//--------------------------------------------------------------------
@@ -554,98 +714,18 @@ bool ChatServer::PacketProc_ChatMessage(DWORD64 sessionID, NetPacket* packet)
 	// 주변 영향권 섹터의 유저들에게 채팅 메시지 보내기
 	//--------------------------------------------------------------------
 	Packet::MakeChatMessage(resPacket
-		, character->accountNo
-		, character->id
-		, character->nickname
+		, user->accountNo
+		, user->id
+		, user->nickname
 		, messageLen
 		, message);
-	SendSectorAround(character, resPacket);
+
+	PLAYER* player = FindPlayer(user->accountNo);
+	SendSectorAround(player, resPacket);
 
 	//--------------------------------------------------------------------
 	// 오브젝트풀에 직렬화 버퍼 반납
 	//--------------------------------------------------------------------
 	NetPacket::Free(resPacket);
 	return true;
-}
-bool ChatServer::IsMovableCharacter(int sectorX, int sectorY)
-{
-	//--------------------------------------------------------------------
-	// 섹터 좌표 이동 가능여부 확인
-	//--------------------------------------------------------------------
-	if (sectorX < dfSECTOR_MAX_X && sectorY < dfSECTOR_MAX_Y)
-		return true;
-
-	return false;
-}
-void ChatServer::AddCharacter_Sector(CHARACTER* character, int sectorX, int sectorY)
-{
-	//--------------------------------------------------------------------
-	// 섹터 리스트에 플레이어 추가
-	//--------------------------------------------------------------------
-	character->sector.x = sectorX;
-	character->sector.y = sectorY;
-	_sectorList[character->sector.y][character->sector.x].push_back(character);
-}
-void ChatServer::RemoveCharacter_Sector(CHARACTER* character)
-{
-	//--------------------------------------------------------------------
-	// 섹터 리스트에서 플레이어 제거
-	//--------------------------------------------------------------------
-	_sectorList[character->sector.y][character->sector.x].remove(character);
-}
-void ChatServer::UpdateCharacter_Sector(CHARACTER* character, int sectorX, int sectorY)
-{
-	if (character->sector.x != dfUNKNOWN_SECTOR && character->sector.y != dfUNKNOWN_SECTOR)
-		RemoveCharacter_Sector(character);
-
-	AddCharacter_Sector(character, sectorX, sectorY);
-}
-void ChatServer::GetSectorAround(int sectorX, int sectorY, SECTOR_AROUND* sectorAround)
-{
-	//--------------------------------------------------------------------
-	// 특정 좌표 기준으로 주변 영향권 섹터 얻기
-	//--------------------------------------------------------------------
-	sectorX--;
-	sectorY--;
-
-	sectorAround->count = 0;
-	for (int y = 0; y < 3; y++)
-	{
-		if (sectorY + y < 0 || sectorY + y >= dfSECTOR_MAX_Y)
-			continue;
-
-		for (int x = 0; x < 3; x++)
-		{
-			if (sectorX + x < 0 || sectorX + x >= dfSECTOR_MAX_X)
-				continue;
-
-			sectorAround->around[sectorAround->count].x = sectorX + x;
-			sectorAround->around[sectorAround->count].y = sectorY + y;
-			sectorAround->count++;
-		}
-	}
-}
-void ChatServer::SendSectorOne(NetPacket* packet, int sectorX, int sectorY)
-{
-	//--------------------------------------------------------------------
-	// 특정 섹터에 있는 유저들에게 메시지 보내기
-	//--------------------------------------------------------------------
-	std::list<CHARACTER*> *sectorList = &_sectorList[sectorY][sectorX];
-	for (auto iter = sectorList->begin(); iter != sectorList->end(); ++iter)
-	{
-		SendPacket((*iter)->sessionID, packet);
-	}
-}
-void ChatServer::SendSectorAround(CHARACTER* character, NetPacket* packet)
-{
-	//--------------------------------------------------------------------
-	// 주변 영향권 섹터에 있는 유저들에게 메시지 보내기
-	//--------------------------------------------------------------------
-	SECTOR_AROUND sectorAround;
-	GetSectorAround(character->sector.x, character->sector.y, &sectorAround);
-
-	for (int i = 0; i < sectorAround.count; i++)
-	{
-		SendSectorOne(packet, sectorAround.around[i].x, sectorAround.around[i].y);
-	}
 }
