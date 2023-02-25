@@ -5,10 +5,7 @@
 #include "../../Common/ObjectPool_TLS.h"
 #include "../../Common/Lock.h"
 #include "../../Common/DBConnector_TLS.h"
-#include <unordered_map>
 #include <unordered_set>
-#include <list>
-#include <thread>
 #include <cpp_redis/cpp_redis>
 
 typedef std::wstring WHITE_IP;
@@ -41,12 +38,4 @@ private:
 	std::unordered_set<WHITE_IP> _whiteIPTable;
 	cpp_redis::client _memorydb;
 	bool _serviceMode;
-};
-
-enum ACCOUNT_STATUS
-{
-	ACCOUNT_STATUS_OFFLINE = 0,
-	ACCOUNT_STATUS_LOGIN_ING = 1,
-	ACCOUNT_STATUS_LOGIN_DONE = 2,
-	ACCOUNT_STATUS_GAMEPLAY = 3
 };

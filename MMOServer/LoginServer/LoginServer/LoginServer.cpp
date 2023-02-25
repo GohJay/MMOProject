@@ -77,8 +77,6 @@ void LoginServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
 
 	if (!PacketProc(sessionID, packet, type))
 		Disconnect(sessionID);
-
-	NetPacket::Free(packet);
 }
 void LoginServer::OnClientLeave(DWORD64 sessionID)
 {
@@ -89,7 +87,7 @@ void LoginServer::OnError(int errcode, const wchar_t* funcname, int linenum, WPA
 	//--------------------------------------------------------------------
 	// Network IO Error ·Î±ë
 	//--------------------------------------------------------------------
-	Logger::WriteLog(L"Chat"
+	Logger::WriteLog(L"Login"
 		, LOG_LEVEL_ERROR
 		, L"func: %s, line: %d, error: %d, wParam: %llu, lParam: %llu"
 		, funcname, linenum, errcode, wParam, lParam);
@@ -220,7 +218,7 @@ WHERE a.`accountno` = %lld;", accountNo);
 	{
 		std::string key(std::to_string(accountNo));
 		std::string token(sessionKey, sizeof(sessionKey));
-		_memorydb.setex(key, ServerConfig::GetRedisTimeout(), token);
+		_memorydb.setex(key, ServerConfig::GetRedisTimeoutSec(), token);
 		_memorydb.sync_commit();
 	}
 

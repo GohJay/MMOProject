@@ -1,6 +1,6 @@
 #pragma once
 
-struct SERVER_INFO
+struct SERVER
 {
 	//-----------------------------------
 	// Listen IP / PORT
@@ -19,25 +19,32 @@ struct SERVER_INFO
 	BYTE packetKey;
 
 	//-----------------------------------
-	// System Log
-	//-----------------------------------
-	int logLevel;
-	wchar_t logPath[MAX_PATH / 2];
-};
-
-struct SERVICE_INFO
-{
-	//-----------------------------------
 	// 미응답 유저 타임아웃 처리 (초 단위)
 	//-----------------------------------
 	int timeoutSec;
+};
+
+struct SERVICE
+{
+	//-----------------------------------
+	// MMO 서버 정보
+	//-----------------------------------
 	wchar_t gameserver_ip[16];
 	int gameserver_port;
 	wchar_t chatserver_ip[16];
 	int chatserver_port;
 };
 
-struct DATABASE_INFO
+struct SYSTEM
+{
+	//-----------------------------------
+	// System Log
+	//-----------------------------------
+	int logLevel;
+	wchar_t logPath[MAX_PATH / 2];
+};
+
+struct DATABASE
 {
 	//-----------------------------------
 	// MySQL 접속 정보
@@ -53,5 +60,5 @@ struct DATABASE_INFO
 	//-----------------------------------
 	wchar_t redis_ip[16];
 	int redis_port;
-	int redis_timeout;
+	int redis_timeout_sec;
 };
