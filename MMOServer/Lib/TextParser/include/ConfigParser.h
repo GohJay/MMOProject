@@ -7,9 +7,9 @@ namespace Jay
 	* @file		ConfigParser.h
 	* @brief	설정 파일 파서 클래스
 	* @details	UTF-16LE 인코딩을 지원하는 설정 파일 파서
-	* @author   고재현
+	* @author	고재현
 	* @date		2022-09-01
-	* @version  1.0.0
+	* @version	1.0.0
 	**/
 	class ConfigParser
 	{

@@ -1,5 +1,5 @@
-#ifndef __NETSERVER__H_
-#define __NETSERVER__H_
+#ifndef __LANSERVER__H_
+#define __LANSERVER__H_
 #include "Base.h"
 #include "Session.h"
 #include "NetPacket.h"
@@ -7,21 +7,21 @@
 
 namespace Jay
 {
-	class NetServer
+	class LanServer
 	{
 		/**
-		* @file		NetServer.h
-		* @brief	Network NetServer Class
-		* @details	외부 네트워크의 클라이언트와 통신을 목적으로한 IOCP 서버 클래스
+		* @file		LanServer.h
+		* @brief	Network LanServer Class
+		* @details	내부 네트워크의 클라이언트와 통신을 목적으로한 IOCP 서버 클래스
 		* @author	고재현
 		* @date		2023-01-22
-		* @version	1.0.1
+		* @version	1.0.3
 		**/
 	public:
-		NetServer();
-		virtual ~NetServer();
+		LanServer();
+		virtual ~LanServer();
 	public:
-		bool Start(const wchar_t* ipaddress, int port, int workerCreateCount, int workerRunningCount, WORD sessionMax, BYTE packetCode, BYTE packetKey, int timeoutSec = 0, bool nagle = true);
+		bool Start(const wchar_t* ipaddress, int port, int workerCreateCount, int workerRunningCount, WORD sessionMax, int timeoutSec = 0, bool nagle = true);
 		void Stop();
 		bool Disconnect(DWORD64 sessionID);
 		bool SendPacket(DWORD64 sessionID, NetPacket* packet);
@@ -82,8 +82,6 @@ namespace Jay
 		DWORD _lastTimeoutProc;
 		int _timeoutSec;
 		MONITORING _monitoring;
-		BYTE _packetCode;
-		BYTE _packetKey;
 		volatile bool _stopSignal;
 	};
 }

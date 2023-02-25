@@ -18,9 +18,9 @@ namespace Jay
 		* @file		DBConnector.h
 		* @brief	DB Connector Class
 		* @details	DB 사용을 위한 커넥터 클래스
-		* @author   고재현
+		* @author	고재현
 		* @date		2023-02-07
-		* @version  1.0.0
+		* @version	1.0.0
 		**/
 	private:
 		struct PROFILE

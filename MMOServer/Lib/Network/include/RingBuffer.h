@@ -8,15 +8,16 @@ namespace Jay
 	class LanServer;
 	class NetClient;
 	class NetServer;
+	class NetServerEx;
 	class RingBuffer
 	{
 		/**
 		* @file		RingBuffer.h
 		* @brief	Network RingBuffer Class
 		* @details	TCP/IP 프로토콜 송수신을 위한 링버퍼 클래스
-		* @author   고재현
+		* @author	고재현
 		* @date		2022-11-26
-		* @version  1.0.5
+		* @version	1.0.5
 		**/
 	public:
 		RingBuffer(int bufferSize = 8192);
@@ -126,6 +127,7 @@ namespace Jay
 		char* _front;
 		char* _rear;
 		int _bufferSize;
+		friend class NetServerEx;
 		friend class NetServer;
 		friend class NetClient;
 		friend class LanServer;
