@@ -34,8 +34,8 @@ namespace Jay
 		float GetUseCPUKernelTime();
 		float GetUseNonpagedPoolMBytes();
 		float GetFreeMemoryMBytes();
-		float GetNetworkRecvMbit();
-		float GetNetworkSendMbit();
+		float GetNetworkRecvKBytes();
+		float GetNetworkSendKBytes();
 	private:
 		void AddEthernetCounter();
 		void InitPDHCounter();

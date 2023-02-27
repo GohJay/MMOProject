@@ -57,13 +57,13 @@ float ProcesserUsage::GetFreeMemoryMBytes()
 {
 	return (float)_pdh_Value_Memory_FreeMBytes;
 }
-float ProcesserUsage::GetNetworkRecvMbit()
+float ProcesserUsage::GetNetworkRecvKBytes()
 {
-	return (float)((_pdh_Value_Network_RecvBytes * 8) / (1000 * 1000));
+	return (float)(_pdh_Value_Network_RecvBytes / 1000);
 }
-float ProcesserUsage::GetNetworkSendMbit()
+float ProcesserUsage::GetNetworkSendKBytes()
 {
-	return (float)((_pdh_Value_Network_SendBytes * 8) / (1000 * 1000));
+	return (float)(_pdh_Value_Network_SendBytes / 1000);
 }
 void ProcesserUsage::AddEthernetCounter()
 {

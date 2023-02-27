@@ -4,9 +4,9 @@
 
 using namespace Jay;
 
+__declspec(thread) DBConnector* DBConnector_TLS::_tlsDB = NULL;
 DBConnector_TLS::DBConnector_TLS()
 {
-	_tlsDB = TlsAlloc();
 }
 DBConnector_TLS::~DBConnector_TLS()
 {
@@ -17,8 +17,6 @@ DBConnector_TLS::~DBConnector_TLS()
 		db->Disconnect();
 		delete db;
 	}
-
-	TlsFree(_tlsDB);
 }
 void DBConnector_TLS::SetProperty(const wchar_t* ipaddress, int port, const wchar_t* user, const wchar_t* passwd, const wchar_t* schema, bool reconnect)
 {
@@ -69,7 +67,7 @@ void DBConnector_TLS::ClearQuery(sql::ResultSet* res)
 }
 DBConnector* DBConnector_TLS::GetCurrentDB()
 {
-	DBConnector* db = (DBConnector*)TlsGetValue(_tlsDB);
+	DBConnector* db = _tlsDB;
 	if (db == NULL)
 	{
 		db = new DBConnector();
@@ -81,7 +79,7 @@ DBConnector* DBConnector_TLS::GetCurrentDB()
 			, _property.opt_reconnect);
 
 		_gcStack.Push(db);
-		TlsSetValue(_tlsDB, db);
+		_tlsDB = db;
 	}
 	return db;
 }

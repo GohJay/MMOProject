@@ -1,18 +1,7 @@
 #ifndef  __OBJECT_POOL__H_
 #define  __OBJECT_POOL__H_
-#ifdef _WIN64
 
 #define SECURE_MODE					1
-
-#define MAXIMUM_ADDRESS_RANGE		0x00007ffffffeffff
-#define MAXIMUM_ADDRESS_MASK		0x00007fffffffffff
-#define NODE_STAMP_MASK				0xffff800000000000
-#define NODE_STAMP_OFFSET			47
-
-#define GET_NODE_STAMP(node)		(LONG64)((ULONG_PTR)(node) & NODE_STAMP_MASK)
-#define GET_NODE_ADDRESS(node)		(PVOID)((ULONG_PTR)(node) & MAXIMUM_ADDRESS_MASK)
-#define NEXT_NODE_STAMP(basenode)	(LONG64)((((LONG64)(basenode) >> NODE_STAMP_OFFSET) + 1) << NODE_STAMP_OFFSET)
-#define MAKE_NODE(address, stamp)	(PVOID)((ULONG_PTR)(address) | (stamp))
 
 #include <new.h>
 
@@ -26,9 +15,9 @@ namespace Jay
 				T *pData = MemPool.Alloc();
 				pData 사용
 				MemPool.Free(pData);
-	* @author	고재현
-	* @date		2022-12-08
-	* @version	1.1.3
+	* @author   고재현
+	* @date		2022-02-26
+	* @version  1.0.1
 	**/
 	template <typename T>
 	class ObjectPool
@@ -47,17 +36,15 @@ namespace Jay
 		* @brief	생성자, 소멸자
 		* @details
 		* @param	int(초기 블럭 개수), bool(Alloc 시 생성자 / Free 시 파괴자 호출 여부)
-		* @return	
+		* @return
 		**/
-		ObjectPool(int blockNum, bool placementNew = false) 
+		ObjectPool(int blockNum, bool placementNew = false)
 			: _top(nullptr), _placementNew(placementNew), _capacity(0), _useCount(0)
 		{
-			NODE* node; 
-			LONG64 nodeStamp;
 			while (blockNum > 0)
 			{
-				node = (NODE*)malloc(sizeof(NODE));
-				node->prev = (NODE*)GET_NODE_ADDRESS(_top);
+				NODE* node = (NODE*)malloc(sizeof(NODE));
+				node->prev = _top;
 #if SECURE_MODE
 				node->signature = (size_t)this;
 				_capacity++;
@@ -65,8 +52,7 @@ namespace Jay
 				if (!_placementNew)
 					new(&node->data) T();
 
-				nodeStamp = NEXT_NODE_STAMP(_top);
-				_top = (NODE*)MAKE_NODE(node, nodeStamp);
+				_top = node;
 
 				blockNum--;
 			}
@@ -74,7 +60,6 @@ namespace Jay
 		~ObjectPool()
 		{
 			NODE* prev;
-			_top = (NODE*)GET_NODE_ADDRESS(_top);
 			while (_top)
 			{
 				if (!_placementNew)
@@ -97,52 +82,41 @@ namespace Jay
 		**/
 		T* Alloc(void)
 		{
-			NODE* top;
-			NODE* prev;
 			NODE* node;
-			LONG64 nodeStamp;
 
-			do
+			if (_top == nullptr)
 			{
-				top = _top;
-				node = (NODE*)GET_NODE_ADDRESS(top);
-				if (node == nullptr)
-				{
-					node = (NODE*)malloc(sizeof(NODE));
-					new(&node->data) T();
+				node = (NODE*)malloc(sizeof(NODE));
+				new(&node->data) T();
 #if SECURE_MODE
-					node->signature = (size_t)this;
-					InterlockedIncrement(&_capacity);
-					InterlockedIncrement(&_useCount);
+				node->signature = (size_t)this;
+				_capacity++;
+				_useCount++;
 #endif
-					return &node->data;
-				}
-				nodeStamp = GET_NODE_STAMP(top);
-				prev = (NODE*)MAKE_NODE(node->prev, nodeStamp);
-			} while (InterlockedCompareExchangePointer((PVOID*)&_top, prev, top) != top);
+				return &node->data;
+			}
+
+			node = _top;
+			_top = node->prev;
 
 			if (_placementNew)
 				new(&node->data) T();
+
 #if SECURE_MODE
-			InterlockedIncrement(&_useCount);
+			_useCount++;
 #endif
 			return &node->data;
 		}
-		
+
 		/**
 		* @brief	사용중이던 블럭을 해제한다.
-		* @details	
+		* @details
 		* @param	T*(데이터 블럭 포인터)
 		* @return	void
 		**/
-		void Free(T* data) throw(...)
+		void Free(T* data) throw()
 		{
-			NODE* node;
-			NODE* top;
-			NODE* prev;
-			LONG64 nodeStamp;
-
-			node = (NODE*)data;
+			NODE* node = (NODE*)data;
 #if SECURE_MODE
 			if (node->signature != (size_t)this)
 				throw;
@@ -150,19 +124,14 @@ namespace Jay
 			if (_placementNew)
 				node->data.~T();
 
-			do
-			{
-				top = _top;
-				node->prev = (NODE*)GET_NODE_ADDRESS(top);
-				nodeStamp = NEXT_NODE_STAMP(top);
-				prev = (NODE*)MAKE_NODE(node, nodeStamp);
-			} while (InterlockedCompareExchangePointer((PVOID*)&_top, prev, top) != top);
+			node->prev = _top;
+			_top = node;
 
 #if SECURE_MODE
-			InterlockedDecrement(&_useCount);
+			_useCount--;
 #endif
 		}
-		
+
 		/**
 		* @brief	현재 확보 된 블럭 개수를 얻는다.(메모리 풀 내부의 전체 개수)
 		* @details
@@ -187,10 +156,8 @@ namespace Jay
 	private:
 		NODE* _top;
 		bool _placementNew;
-		long _capacity;
-		long _useCount;
+		int _capacity;
+		int _useCount;
 	};
 }
-
-#endif //!_WIN64
-#endif //!__OBJECT_POOL__H_
+#endif

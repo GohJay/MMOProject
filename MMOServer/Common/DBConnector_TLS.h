@@ -12,8 +12,8 @@ namespace Jay
 		* @brief	DB Connector Class TLS 버전
 		* @details	멀티스레드 환경에서의 DB 사용을 위한 커넥터 클래스
 		* @author	고재현
-		* @date		2023-02-11
-		* @version	1.0.0
+		* @date		2023-02-26
+		* @version	1.0.1
 		**/
 	private:
 		struct PROPERTY
@@ -72,8 +72,8 @@ namespace Jay
 		DBConnector* GetCurrentDB();
 	private:
 		PROPERTY _property;
-		DWORD _tlsDB;
 		LockFreeStack<DBConnector*> _gcStack;
+		__declspec(thread) static DBConnector* _tlsDB;
 	};
 }
 
