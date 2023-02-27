@@ -5,6 +5,9 @@ DBMonitoringLog::DBMonitoringLog(int serverno, int type, int avr, int min, int m
 	: _serverno(serverno), _type(type), _avr(avr), _min(min), _max(max)
 {
 }
+DBMonitoringLog::~DBMonitoringLog()
+{
+}
 void DBMonitoringLog::Exec(Jay::DBConnector* db)
 {
 	try

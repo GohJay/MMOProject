@@ -88,7 +88,7 @@ void CollectServer::OnError(int errcode, const wchar_t* funcname, int linenum, W
 	//--------------------------------------------------------------------
 	// Network IO Error 로깅
 	//--------------------------------------------------------------------
-	Logger::WriteLog(L"Monitor"
+	Logger::WriteLog(L"Collect"
 		, LOG_LEVEL_ERROR
 		, L"func: %s, line: %d, error: %d, wParam: %llu, lParam: %llu"
 		, funcname, linenum, errcode, wParam, lParam);
@@ -162,7 +162,7 @@ void CollectServer::DBWriteThread()
 		}
 	}
 }
-bool CollectServer::FindServerNo(DWORD64 sessionID, int* serverNo)
+bool CollectServer::FindServer(DWORD64 sessionID, int* serverNo)
 {
 	LockGuard_Shared<SRWLock> lockGuard(&_mapLock);
 	auto iter = _serverMap.find(sessionID);
@@ -185,35 +185,6 @@ bool CollectServer::FindData(int serverNo, BYTE dataType, DATA** data)
 		return true;
 	}
 	return false;
-}
-void CollectServer::UpdateData(int serverNo, BYTE dataType, int dataValue, DATA* data)
-{
-	//--------------------------------------------------------------------
-	// 모니터링 데이터 갱신
-	//--------------------------------------------------------------------
-	if (data->iMin > dataValue || data->iMin == 0)
-		data->iMin = dataValue;
-	if (data->iMax < dataValue)
-		data->iMax = dataValue;
-	data->totalData += dataValue;
-	data->iCall++;
-
-	//--------------------------------------------------------------------
-	// 주기에 따라 DB 에 모니터링 데이터 저장
-	//--------------------------------------------------------------------
-	DWORD currentTime = timeGetTime();
-	if (currentTime - data->lastLogTime >= dfDATABASE_LOG_WRITE_TERM)
-	{
-		DBMonitoringLog* dbLog = new DBMonitoringLog(serverNo, dataType, data->totalData / data->iCall, data->iMin, data->iMax);
-		_dbJobQ.Enqueue(dbLog);
-		SetEvent(_hJobEvent);
-
-		data->totalData = 0;
-		data->iMin = 0;
-		data->iMax = 0;
-		data->iCall = 0;
-		data->lastLogTime = currentTime;
-	}
 }
 bool CollectServer::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
 {
@@ -264,7 +235,7 @@ bool CollectServer::PacketProc_DataUpdate(DWORD64 sessionID, NetPacket* packet)
 	// 모니터링 데이터 찾기
 	//--------------------------------------------------------------------
 	int serverNo;
-	if (!FindServerNo(sessionID, &serverNo))
+	if (!FindServer(sessionID, &serverNo))
 		return false;
 
 	DATA* data;
@@ -281,7 +252,35 @@ bool CollectServer::PacketProc_DataUpdate(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 모니터링 데이터 갱신
 	//--------------------------------------------------------------------
-	UpdateData(serverNo, dataType, dataValue, data);
+	if (data->iMin > dataValue || data->iMin == 0)
+		data->iMin = dataValue;
+	if (data->iMax < dataValue)
+		data->iMax = dataValue;
+	data->totalData += dataValue;
+	data->iCall++;
+
+	//--------------------------------------------------------------------
+	// 주기에 따라 DB 에 모니터링 데이터 저장
+	//--------------------------------------------------------------------
+	DBMonitoringLog* dbLog;
+	DWORD currentTime = timeGetTime();
+	if (currentTime - data->lastLogTime >= dfDATABASE_LOG_WRITE_TERM)
+	{
+		dbLog = new DBMonitoringLog(serverNo
+			, dataType
+			, data->totalData / data->iCall
+			, data->iMin
+			, data->iMax);
+
+		_dbJobQ.Enqueue(dbLog);
+		SetEvent(_hJobEvent);
+
+		data->totalData = 0;
+		data->iMin = 0;
+		data->iMax = 0;
+		data->iCall = 0;
+		data->lastLogTime = currentTime;
+	}
 
 	//--------------------------------------------------------------------
 	// 모니터링 클라이언트에게 데이터 갱신 알림

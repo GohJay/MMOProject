@@ -4,6 +4,7 @@
 #pragma comment(lib, "../../Lib/TextParser/lib64/TextParser.lib")
 
 SERVER ServerConfig::_server;
+CLIENT ServerConfig::_client;
 SERVICE ServerConfig::_service;
 SYSTEM ServerConfig::_system;
 DATABASE ServerConfig::_database;
@@ -23,6 +24,9 @@ bool ServerConfig::LoadFile(const wchar_t* filename)
 	confParser.GetValue(L"SERVER", L"PACKET_CODE", (int*)&_server.packetCode);
 	confParser.GetValue(L"SERVER", L"PACKET_KEY", (int*)&_server.packetKey);
 	confParser.GetValue(L"SERVER", L"TIMEOUT_SEC", &_server.timeoutSec);
+	confParser.GetValue(L"CLIENT", L"IP", _client.ip);
+	confParser.GetValue(L"CLIENT", L"PORT", &_client.port);
+	confParser.GetValue(L"CLIENT", L"RECONNECT", (int*)&_client.reconnect);
 	confParser.GetValue(L"SERVICE", L"GAMESERVER_IP", _service.gameserver_ip);
 	confParser.GetValue(L"SERVICE", L"GAMESERVER_PORT", &_service.gameserver_port);
 	confParser.GetValue(L"SERVICE", L"CHATSERVER_IP", _service.chatserver_ip);

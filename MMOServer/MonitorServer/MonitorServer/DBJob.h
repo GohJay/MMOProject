@@ -11,6 +11,7 @@ class DBMonitoringLog : public IDBJob
 {
 public:
 	DBMonitoringLog(int serverno, int type, int avr, int min, int max);
+	~DBMonitoringLog();
 public:
 	void Exec(Jay::DBConnector* db) override;
 private:

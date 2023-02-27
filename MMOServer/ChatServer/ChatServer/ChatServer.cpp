@@ -379,14 +379,13 @@ void ChatServer::LoginProc(DWORD64 sessionID, bool result)
 	//--------------------------------------------------------------------
 	NetPacket::Free(resPacket);
 }
-USER* ChatServer::NewUser(DWORD64 sessionID)
+void ChatServer::NewUser(DWORD64 sessionID)
 {
 	USER* user = _userPool.Alloc();
 	user->sessionID = sessionID;
 	user->login = false;
 	
 	_userMap.insert({ sessionID, user });
-	return user;
 }
 void ChatServer::DeleteUser(DWORD64 sessionID)
 {
@@ -410,7 +409,7 @@ USER* ChatServer::FindUser(INT64 sessionID)
 	}
 	return nullptr;
 }
-PLAYER* ChatServer::NewPlayer(DWORD64 sessionID, INT64 accountNo)
+void ChatServer::NewPlayer(DWORD64 sessionID, INT64 accountNo)
 {
 	PLAYER* player = _playerPool.Alloc();
 	player->sessionID = sessionID;
@@ -419,22 +418,16 @@ PLAYER* ChatServer::NewPlayer(DWORD64 sessionID, INT64 accountNo)
 	player->sector.y = dfUNKNOWN_SECTOR;
 
 	_playerMap.insert({ accountNo, player });
-	return player;
 }
 void ChatServer::DeletePlayer(INT64 accountNo)
 {
-	PLAYER* player;
 	auto iter = _playerMap.find(accountNo);
-	if (iter != _playerMap.end())
-	{
-		player = iter->second;
-		_playerMap.erase(iter);
+	PLAYER* player = iter->second;
+	if (player->sector.x != dfUNKNOWN_SECTOR && player->sector.y != dfUNKNOWN_SECTOR)
+		RemovePlayer_Sector(player);
 
-		if (player->sector.x != dfUNKNOWN_SECTOR && player->sector.y != dfUNKNOWN_SECTOR)
-			RemovePlayer_Sector(player);
-
-		_playerPool.Free(player);
-	}
+	_playerMap.erase(iter);
+	_playerPool.Free(player);
 }
 PLAYER* ChatServer::FindPlayer(INT64 accountNo)
 {

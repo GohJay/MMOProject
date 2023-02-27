@@ -5,8 +5,8 @@ class ServerConfig
 {
 public:
 	static bool LoadFile(const wchar_t* filename);
-	static const wchar_t* GetServerIP() { return _server.ip; }
-	static int GetServerPort() { return _server.port; }
+	static const wchar_t* GetLoginServerIP() { return _server.ip; }
+	static int GetLoginServerPort() { return _server.port; }
 	static int GetIOCPWorkerCreate() { return _server.workerCreateCnt; }
 	static int GetIOCPWorkerRunning() { return _server.workerRunningCnt; }
 	static WORD GetSessionMax() { return _server.sessionMax; }
@@ -14,6 +14,9 @@ public:
 	static BYTE GetPacketCode() { return _server.packetCode; }
 	static BYTE GetPacketKey() { return _server.packetKey; }
 	static int GetSessionTimeoutSec() { return _server.timeoutSec; }
+	static const wchar_t* GetMonitorServerIP() { return _client.ip; }
+	static int GetMonitorServerPort() { return _client.port; }
+	static bool IsMonitorReconnect() { return _client.reconnect; }
 	static const wchar_t* GetGameServerIP() { return _service.gameserver_ip; }
 	static int GetGameServerPort() { return _service.gameserver_port; }
 	static const wchar_t* GetChatServerIP() { return _service.chatserver_ip; }
@@ -30,6 +33,7 @@ public:
 	static int GetRedisTimeoutSec() { return _database.redis_timeout_sec; }
 private:
 	static SERVER _server;
+	static CLIENT _client;
 	static SERVICE _service;
 	static SYSTEM _system;
 	static DATABASE _database;

@@ -48,9 +48,7 @@ void MonitorServer::OnClientJoin(DWORD64 sessionID)
 void MonitorServer::OnClientLeave(DWORD64 sessionID)
 {
 	_tableLock.Lock();
-	auto iter = _clientTable.find(sessionID);
-	if (iter != _clientTable.end())
-		_clientTable.erase(iter);
+	_clientTable.erase(sessionID);
 	_tableLock.UnLock();
 }
 void MonitorServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
@@ -88,15 +86,15 @@ bool MonitorServer::ValidationKey(const char* loginSessionKey)
 	char* key1 = (char*)loginSessionKey;
 	char* key2 = (char*)ServerConfig::GetLoginKey();
 
-	while (*key1 && *key2)
+	while (*key1 || *key2)
 	{
 		if (*key1 != *key2)
-			break;
+			return false;
 
 		key1 += sizeof(char);
 		key2 += sizeof(wchar_t);
 	}
-	return (*key1 == *key2);
+	return true;
 }
 void MonitorServer::SendBroadcast(NetPacket* packet)
 {

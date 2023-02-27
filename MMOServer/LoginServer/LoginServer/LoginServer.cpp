@@ -14,7 +14,7 @@
 
 using namespace Jay;
 
-LoginServer::LoginServer() : _serviceMode(false)
+LoginServer::LoginServer()
 {
 }
 LoginServer::~LoginServer()
@@ -54,6 +54,10 @@ void LoginServer::Stop()
 void LoginServer::SwitchServiceMode()
 {
 	_serviceMode = true;
+}
+int LoginServer::GetAuthTPS()
+{
+	return _oldAuthTPS;
 }
 bool LoginServer::OnConnectionRequest(const wchar_t* ipaddress, int port)
 {
@@ -100,10 +104,19 @@ void LoginServer::OnError(int errcode, const wchar_t* funcname, int linenum, WPA
 }
 bool LoginServer::Initial()
 {
+	_serviceMode = false;
+	_stopSignal = false;
+
+	//--------------------------------------------------------------------
+	// Redis Connect
+	//--------------------------------------------------------------------
 	std::string redisIP;
 	UnicodeToString(ServerConfig::GetRedisIP(), redisIP);
 	_memorydb.connect(redisIP, ServerConfig::GetRedisPort());
 
+	//--------------------------------------------------------------------
+	// Database Init
+	//--------------------------------------------------------------------
 	_accountdb.SetProperty(ServerConfig::GetDatabaseIP()
 		, ServerConfig::GetDatabasePort()
 		, ServerConfig::GetDatabaseUser()
@@ -111,11 +124,37 @@ bool LoginServer::Initial()
 		, ServerConfig::GetDatabaseSchema());
 
 	FetchWhiteIPList();
+
+	//--------------------------------------------------------------------
+	// Thread Begin
+	//--------------------------------------------------------------------
+	_managementThread = std::thread(&LoginServer::ManagementThread, this);
 	return true;
 }
 void LoginServer::Release()
 {
+	//--------------------------------------------------------------------
+	// Thread End
+	//--------------------------------------------------------------------
+	_stopSignal = true;
+	_managementThread.join();
+
+	//--------------------------------------------------------------------
+	// Redis Disconnect
+	//--------------------------------------------------------------------
 	_memorydb.disconnect();
+}
+void LoginServer::ManagementThread()
+{
+	while (!_stopSignal)
+	{
+		Sleep(1000);
+		UpdateTPS();
+	}
+}
+void LoginServer::UpdateTPS()
+{
+	_oldAuthTPS.exchange(_curAuthTPS.exchange(0));
 }
 void LoginServer::FetchWhiteIPList()
 {
@@ -245,5 +284,7 @@ WHERE a.`accountno` = %lld;", accountNo);
 	// 오브젝트풀에 직렬화 버퍼 반납
 	//--------------------------------------------------------------------
 	NetPacket::Free(resPacket);
+
+	_curAuthTPS++;
 	return true;
 }

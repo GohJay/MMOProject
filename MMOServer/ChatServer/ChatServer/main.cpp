@@ -74,6 +74,7 @@ void Monitor()
 	wprintf_s(L"\
 [%d/%02d/%02d %02d:%02d:%02d]\n\
 ------------------------------------\n\
+Packet Pool Capacity: %d\n\
 Packet Pool Use: %d\n\
 Session Count: %d\n\
 ------------------------------------\n\
@@ -91,9 +92,10 @@ Update TPS: %d\n\
 Job Queue Count: %d\n\
 Job Pool Use: %d\n\
 ------------------------------------\n\
-\n\n\n\n\n\n\n\n\n\n"
+\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
-		, g_ChatServer.GetUsePacketCount()
+		, g_ChatServer.GetCapacityPacketPool()
+		, g_ChatServer.GetUsePacketPool()
 		, g_ChatServer.GetSessionCount()
 		, g_ChatServer.GetUserCount()
 		, g_ChatServer.GetUseUserPool()

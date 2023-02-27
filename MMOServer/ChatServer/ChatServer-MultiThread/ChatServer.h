@@ -2,7 +2,7 @@
 #include "../../Lib/Network/include/NetServer.h"
 #include "../../Common/CommonProtocol.h"
 #include "../../Common/LockFreeQueue.h"
-#include "../../Common/ObjectPool_TLS.h"
+#include "../../Common/LFObjectPool_TLS.h"
 #include "../../Common/Lock.h"
 #include "Define.h"
 #include "Object.h"
@@ -35,10 +35,10 @@ private:
 	bool Initial();
 	void Release();
 private:
-	USER* NewUser(DWORD64 sessionID);
+	void NewUser(DWORD64 sessionID);
 	void DeleteUser(DWORD64 sessionID);
 	USER* FindUser(INT64 sessionID);
-	PLAYER* NewPlayer(DWORD64 sessionID, INT64 accountNo);
+	void NewPlayer(DWORD64 sessionID, INT64 accountNo);
 	void DeletePlayer(INT64 accountNo);
 	PLAYER* FindPlayer(INT64 accountNo);
 	bool IsMovablePlayer(int sectorX, int sectorY);
@@ -59,8 +59,8 @@ private:
 	std::unordered_map<SESSION_ID, USER*> _userMap;
 	std::unordered_map<SESSION_ID, PLAYER*> _playerMap;
 	Jay::SRWLock _mapLock;
-	Jay::ObjectPool_TLS<USER> _userPool;
-	Jay::ObjectPool_TLS<PLAYER> _playerPool;
+	Jay::LFObjectPool_TLS<USER> _userPool;
+	Jay::LFObjectPool_TLS<PLAYER> _playerPool;
 	std::list<PLAYER*> _sectorList[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
 	Jay::SRWLock _sectorLockTable[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
 };

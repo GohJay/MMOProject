@@ -2,10 +2,12 @@
 #include "../../Common/CrashDump.h"
 #include "../../Common/Logger.h"
 #include "LoginServer.h"
+#include "MonitorClient.h"
 #include "ServerConfig.h"
 #pragma comment(lib, "Winmm.lib")
 
-LoginServer g_Server;
+LoginServer g_LoginServer;
+MonitorClient g_MonitorClient(&g_LoginServer);
 bool g_StopSignal = false;
 bool g_ControlMode = false;
 
@@ -32,8 +34,8 @@ void Run()
 	if (!Init())
 		return;
 
-	if (!g_Server.Start(ServerConfig::GetServerIP()
-		, ServerConfig::GetServerPort()
+	if (!g_LoginServer.Start(ServerConfig::GetLoginServerIP()
+		, ServerConfig::GetLoginServerPort()
 		, ServerConfig::GetIOCPWorkerCreate()
 		, ServerConfig::GetIOCPWorkerRunning()
 		, ServerConfig::GetSessionMax()
@@ -49,7 +51,7 @@ void Run()
 		Sleep(1000);
 	}
 
-	g_Server.Stop();
+	g_LoginServer.Stop();
 }
 
 bool Init()
@@ -72,22 +74,27 @@ void Monitor()
 	wprintf_s(L"\
 [%d/%02d/%02d %02d:%02d:%02d]\n\
 ------------------------------------\n\
-Session Count: %d\n\
+Packet Pool Capacity: %d\n\
 Packet Pool Use: %d\n\
+Session Count: %d\n\
 ------------------------------------\n\
 Total Accept: %d\n\
 Accept TPS: %d\n\
 Recv TPS: %d\n\
 Send TPS: %d\n\
 ------------------------------------\n\
-\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+Auth TPS: %d\n\
+------------------------------------\n\
+\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
-		, g_Server.GetSessionCount()
-		, g_Server.GetUsePacketCount()
-		, g_Server.GetTotalAcceptCount()
-		, g_Server.GetAcceptTPS()
-		, g_Server.GetRecvTPS()
-		, g_Server.GetSendTPS());
+		, g_LoginServer.GetCapacityPacketPool()
+		, g_LoginServer.GetUsePacketPool()
+		, g_LoginServer.GetSessionCount()
+		, g_LoginServer.GetTotalAcceptCount()
+		, g_LoginServer.GetAcceptTPS()
+		, g_LoginServer.GetRecvTPS()
+		, g_LoginServer.GetSendTPS()
+		, g_LoginServer.GetAuthTPS());
 }
 
 void Control()
@@ -121,7 +128,7 @@ void Control()
 
 		if ((controlKey == L'm' || controlKey == L'M') && g_ControlMode)
 		{
-			g_Server.SwitchServiceMode();
+			g_LoginServer.SwitchServiceMode();
 			wprintf_s(L"Control - Switch To Service Mode\n");
 		}
 	}

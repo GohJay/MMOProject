@@ -9,7 +9,7 @@
 
 using namespace Jay;
 
-MonitorClient::MonitorClient(ChatServer* chat) : _chat(chat), _status(CONNECT)
+MonitorClient::MonitorClient(LoginServer* login) : _login(login), _status(CONNECT)
 {
 	_hExitEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 	_monitoringThread = std::thread(&MonitorClient::MonitoringThread, this);
@@ -73,7 +73,7 @@ void MonitorClient::MonitoringThread()
 		case STOP:
 			return;
 		default:
-			break;
+			break; 
 		}
 	}
 }
@@ -95,7 +95,7 @@ void MonitorClient::LoginProc()
 {
 	NetPacket* packet = NetPacket::Alloc();
 
-	Packet::MakeMonitorLogin(packet, dfMONITOR_SERVER_NO_CHAT);
+	Packet::MakeMonitorLogin(packet, dfMONITOR_SERVER_NO_LOGIN);
 	if (!LanClient::SendPacket(packet))
 		_status = DISCONNECT;
 
@@ -108,13 +108,11 @@ void MonitorClient::MonitoringProc()
 	time_t timer = time(NULL);
 
 	// 프로세스 사용률 갱신
-	Update(dfMONITOR_DATA_TYPE_CHAT_SERVER_CPU, _processUsage.GetUseCPUTotalTime(), timer);
-	Update(dfMONITOR_DATA_TYPE_CHAT_SERVER_MEM, _processUsage.GetUseMemoryMBytes(), timer);
-	Update(dfMONITOR_DATA_TYPE_CHAT_SESSION, _chat->GetSessionCount(), timer);
-	Update(dfMONITOR_DATA_TYPE_CHAT_PLAYER, _chat->GetPlayerCount(), timer);
-	Update(dfMONITOR_DATA_TYPE_CHAT_UPDATE_TPS, _chat->GetUpdateTPS(), timer);
-	Update(dfMONITOR_DATA_TYPE_CHAT_PACKET_POOL, _chat->GetUsePacketPool(), timer);
-	Update(dfMONITOR_DATA_TYPE_CHAT_UPDATEMSG_POOL, _chat->GetUseJobPool(), timer);
+	Update(dfMONITOR_DATA_TYPE_LOGIN_SERVER_CPU, _processUsage.GetUseCPUTotalTime(), timer);
+	Update(dfMONITOR_DATA_TYPE_LOGIN_SERVER_MEM, _processUsage.GetUseMemoryMBytes(), timer);
+	Update(dfMONITOR_DATA_TYPE_LOGIN_SESSION, _login->GetSessionCount(), timer);
+	Update(dfMONITOR_DATA_TYPE_LOGIN_AUTH_TPS, _login->GetAuthTPS(), timer);
+	Update(dfMONITOR_DATA_TYPE_LOGIN_PACKET_POOL, _login->GetUsePacketPool(), timer);
 
 	// 프로세서 사용률 갱신
 	Update(dfMONITOR_DATA_TYPE_MONITOR_CPU_TOTAL, _processerUsage.GetUseCPUTotalTime(), timer);

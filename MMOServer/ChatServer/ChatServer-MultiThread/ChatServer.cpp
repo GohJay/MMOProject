@@ -142,7 +142,7 @@ void ChatServer::Release()
 		iter = _playerMap.erase(iter);
 	}
 }
-USER* ChatServer::NewUser(DWORD64 sessionID)
+void ChatServer::NewUser(DWORD64 sessionID)
 {
 	USER* user = _userPool.Alloc();
 	user->sessionID = sessionID;
@@ -151,7 +151,6 @@ USER* ChatServer::NewUser(DWORD64 sessionID)
 	_mapLock.Lock();
 	_userMap.insert({ sessionID, user });
 	_mapLock.UnLock();
-	return user;
 }
 void ChatServer::DeleteUser(DWORD64 sessionID)
 {
@@ -177,7 +176,7 @@ USER* ChatServer::FindUser(INT64 sessionID)
 	}
 	return nullptr;
 }
-PLAYER* ChatServer::NewPlayer(DWORD64 sessionID, INT64 accountNo)
+void ChatServer::NewPlayer(DWORD64 sessionID, INT64 accountNo)
 {
 	PLAYER* player = _playerPool.Alloc();
 	player->sessionID = sessionID;
@@ -188,7 +187,6 @@ PLAYER* ChatServer::NewPlayer(DWORD64 sessionID, INT64 accountNo)
 	_mapLock.Lock();
 	_playerMap.insert({ accountNo, player });
 	_mapLock.UnLock();
-	return player;
 }
 void ChatServer::DeletePlayer(INT64 accountNo)
 {
@@ -197,9 +195,6 @@ void ChatServer::DeletePlayer(INT64 accountNo)
 
 	_mapLock.Lock();
 	auto iter = _playerMap.find(accountNo);
-	if (iter == _playerMap.end())
-		Jay::CrashDump::Crash();
-
 	player = iter->second;
 	_playerMap.erase(iter);
 	_mapLock.UnLock();

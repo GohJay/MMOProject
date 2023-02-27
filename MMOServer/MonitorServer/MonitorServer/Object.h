@@ -20,7 +20,7 @@ struct DATA_FINDER
 	DATA_FINDER(BYTE type) : dataType(type)
 	{
 	}
-	bool operator() (const std::pair<int, DATA*> range) const
+	bool operator() (const std::pair<int, DATA*>& range) const
 	{
 		if (range.second->dataType == dataType)
 			return true;

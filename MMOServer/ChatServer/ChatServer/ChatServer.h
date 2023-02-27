@@ -2,14 +2,16 @@
 #include "../../Lib/Network/include/NetServer.h"
 #include "../../Common/CommonProtocol.h"
 #include "../../Common/LockFreeQueue.h"
-#include "../../Common/ObjectPool_TLS.h"
+#include "../../Common/ObjectPool.h"
+#include "../../Common/LFObjectPool_TLS.h"
 #include "Define.h"
 #include "Object.h"
 #include "ChatJob.h"
 #include <unordered_map>
+#include <cpp_redis/cpp_redis>
 #include <list>
 #include <thread>
-#include <cpp_redis/cpp_redis>
+#include <atomic>
 
 typedef DWORD64 SESSION_ID;
 typedef INT64 ACCOUNT_NO;
@@ -46,10 +48,10 @@ private:
 	void LeaveProc(DWORD64 sessionID);
 	void LoginProc(DWORD64 sessionID, bool result);
 private:
-	USER* NewUser(DWORD64 sessionID);
+	void NewUser(DWORD64 sessionID);
 	void DeleteUser(DWORD64 sessionID);
 	USER* FindUser(INT64 sessionID);
-	PLAYER* NewPlayer(DWORD64 sessionID, INT64 accountNo);
+	void NewPlayer(DWORD64 sessionID, INT64 accountNo);
 	void DeletePlayer(INT64 accountNo);
 	PLAYER* FindPlayer(INT64 accountNo);
 	bool IsMovablePlayer(int sectorX, int sectorY);
@@ -67,10 +69,10 @@ private:
 private:
 	std::unordered_map<SESSION_ID, USER*> _userMap;
 	std::unordered_map<ACCOUNT_NO, PLAYER*> _playerMap;
-	Jay::ObjectPool_TLS<USER> _userPool;
-	Jay::ObjectPool_TLS<PLAYER> _playerPool;
+	Jay::ObjectPool<USER> _userPool;
+	Jay::ObjectPool<PLAYER> _playerPool;
 	Jay::LockFreeQueue<CHAT_JOB*> _jobQ;
-	Jay::ObjectPool_TLS<CHAT_JOB> _jobPool;
+	Jay::LFObjectPool_TLS<CHAT_JOB> _jobPool;
 	HANDLE _hJobEvent;
 	HANDLE _hExitEvent;
 	std::atomic<int> _oldUpdateTPS;

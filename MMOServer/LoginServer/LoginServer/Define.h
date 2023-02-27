@@ -24,6 +24,16 @@ struct SERVER
 	int timeoutSec;
 };
 
+struct CLIENT
+{
+	//-----------------------------------
+	// MonitorServer Connect IP / PORT
+	//-----------------------------------
+	wchar_t ip[16];
+	int port;
+	bool reconnect;
+};
+
 struct SERVICE
 {
 	//-----------------------------------

@@ -81,18 +81,20 @@ void Monitor()
 	wprintf_s(L"\
 [%d/%02d/%02d %02d:%02d:%02d]\n\
 ------------------------------------\n\
-Session Count: %d\n\
+Packet Pool Capacity: %d\n\
 Packet Pool Use: %d\n\
+Session Count: %d\n\
 ------------------------------------\n\
 Total Accept: %d\n\
 Accept TPS: %d\n\
 Recv TPS: %d\n\
 Send TPS: %d\n\
 ------------------------------------\n\
-\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
+		, g_CollectServer.GetCapacityPacketPool()
+		, g_CollectServer.GetUsePacketPool()
 		, g_CollectServer.GetSessionCount()
-		, g_CollectServer.GetUsePacketCount()
 		, g_CollectServer.GetTotalAcceptCount()
 		, g_CollectServer.GetAcceptTPS()
 		, g_CollectServer.GetRecvTPS()

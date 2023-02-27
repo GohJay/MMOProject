@@ -188,7 +188,7 @@
     <ClInclude Include="CollectServer.h" />
     <ClInclude Include="DBJob.h" />
     <ClInclude Include="Define.h" />
-    <ClInclude Include="MonitoringData.h" />
+    <ClInclude Include="Object.h" />
     <ClInclude Include="MonitorServer.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="ServerConfig.h" />

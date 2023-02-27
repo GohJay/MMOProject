@@ -1,6 +1,6 @@
 #pragma once
 #include "MonitorServer.h"
-#include "MonitoringData.h"
+#include "Object.h"
 #include "DBJob.h"
 #include "../../Lib/Network/include/LanServer.h"
 #include "../../Common/CommonProtocol.h"
@@ -11,7 +11,7 @@
 #include <thread>
 
 typedef DWORD64 SESSION_ID;
-typedef int SERVER_NO;
+typedef INT SERVER_NO;
 
 class CollectServer : public Jay::LanServer
 {
@@ -32,9 +32,8 @@ private:
 	void Release();
 	void DBWriteThread();
 private:
-	bool FindServerNo(DWORD64 sessionID, int* serverNo);
+	bool FindServer(DWORD64 sessionID, int* serverNo);
 	bool FindData(int serverNo, BYTE dataType, DATA** data);
-	void UpdateData(int serverNo, BYTE dataType, int dataValue, DATA* data);
 	bool PacketProc(DWORD64 sessionID, Jay::NetPacket* packet, WORD type);
 	bool PacketProc_Login(DWORD64 sessionID, Jay::NetPacket* packet);
 	bool PacketProc_DataUpdate(DWORD64 sessionID, Jay::NetPacket* packet);

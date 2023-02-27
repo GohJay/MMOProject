@@ -14,3 +14,16 @@ void Packet::MakeLogin(Jay::NetPacket* packet, INT64 accountNo, BYTE status, WCH
 	packet->PutData((char*)chatServerIP, 16 * 2);
 	(*packet) << chatServerPort;
 }
+void Packet::MakeMonitorLogin(Jay::NetPacket* packet, int serverNo)
+{
+	(*packet) << (WORD)en_PACKET_SS_MONITOR_LOGIN;
+	(*packet) << serverNo;
+}
+void Packet::MakeMonitorDataUpdate(Jay::NetPacket* packet, BYTE dataType, int dataValue, int timeStamp)
+{
+	(*packet) << (WORD)en_PACKET_SS_MONITOR_DATA_UPDATE;
+	(*packet) << dataType;
+	(*packet) << dataValue;
+	(*packet) << timeStamp;
+}
+

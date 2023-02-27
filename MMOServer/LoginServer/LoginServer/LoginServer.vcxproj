@@ -161,6 +161,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\Common\ProcesserUsage.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\Common\ProcessUsage.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="LoginServer.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h</PrecompiledHeaderFile>
@@ -173,6 +181,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="MonitorClient.cpp" />
     <ClCompile Include="Packet.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h</PrecompiledHeaderFile>
@@ -205,8 +214,8 @@
     <ClInclude Include="..\..\Common\LockFreeQueue.h" />
     <ClInclude Include="..\..\Common\LockFreeStack.h" />
     <ClInclude Include="..\..\Common\Logger.h" />
-    <ClInclude Include="..\..\Common\ObjectPool.h" />
-    <ClInclude Include="..\..\Common\ObjectPool_TLS.h" />
+    <ClInclude Include="..\..\Common\ProcesserUsage.h" />
+    <ClInclude Include="..\..\Common\ProcessUsage.h" />
     <ClInclude Include="..\..\Common\StringUtil.h" />
     <ClInclude Include="..\..\Lib\MySQL\include\mysql\jdbc.h" />
     <ClInclude Include="..\..\Lib\Network\include\Error.h" />
@@ -216,6 +225,7 @@
     <ClInclude Include="..\..\Lib\TextParser\include\ConfigParser.h" />
     <ClInclude Include="Define.h" />
     <ClInclude Include="LoginServer.h" />
+    <ClInclude Include="MonitorClient.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="ServerConfig.h" />
     <ClInclude Include="stdafx.h" />
