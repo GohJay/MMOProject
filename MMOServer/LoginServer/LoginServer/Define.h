@@ -39,10 +39,10 @@ struct SERVICE
 	//-----------------------------------
 	// MMO 서버 정보
 	//-----------------------------------
-	wchar_t gameserver_ip[16];
-	int gameserver_port;
-	wchar_t chatserver_ip[16];
-	int chatserver_port;
+	wchar_t gameServerIP[16];
+	int gameServerPort;
+	wchar_t chatServerIP[16];
+	int chatServerPort;
 };
 
 struct SYSTEM
@@ -68,7 +68,7 @@ struct DATABASE
 	//-----------------------------------
 	// Redis 접속 정보
 	//-----------------------------------
-	wchar_t redis_ip[16];
-	int redis_port;
-	int redis_timeout_sec;
+	wchar_t redisIP[16];
+	int redisPort;
+	int redisTimeoutSec;
 };

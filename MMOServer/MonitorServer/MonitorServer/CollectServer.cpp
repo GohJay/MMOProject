@@ -53,24 +53,16 @@ bool CollectServer::OnConnectionRequest(const wchar_t* ipaddress, int port)
 }
 void CollectServer::OnClientJoin(DWORD64 sessionID)
 {
+	NewUser(sessionID);
 }
 void CollectServer::OnClientLeave(DWORD64 sessionID)
-{	
-	LockGuard<SRWLock> _lockGuard(&_mapLock);
-	auto serverIter = _serverMap.find(sessionID);
-	if (serverIter == _serverMap.end())
-		return;
+{
+	USER* user;
+	FindUser(sessionID, &user);
 
-	int serverNo = serverIter->second;
-	_serverMap.erase(serverIter);
-
-	auto dataRange = _dataMap.equal_range(serverNo);
-	for (auto dataIter = dataRange.first; dataIter != dataRange.second;)
-	{
-		DATA* data = dataIter->second;
-		delete data;
-		dataIter = _dataMap.erase(dataIter);
-	}
+	if (user->login)
+		DeleteData(user->serverNo);
+	DeleteUser(sessionID);
 }
 void CollectServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
 {
@@ -125,6 +117,7 @@ bool CollectServer::Initial()
 	// DBWriteThread Begin
 	//--------------------------------------------------------------------
 	_dbWriteThread = std::thread(&CollectServer::DBWriteThread, this);
+	_managementThread = std::thread(&CollectServer::ManagementThread, this);
 	return true;
 }
 void CollectServer::Release()
@@ -134,6 +127,7 @@ void CollectServer::Release()
 	//--------------------------------------------------------------------
 	SetEvent(_hExitEvent);
 	_dbWriteThread.join();
+	_managementThread.join();
 
 	//--------------------------------------------------------------------
 	// Database Disconnect
@@ -154,6 +148,7 @@ void CollectServer::DBWriteThread()
 			break;
 
 		IDBJob* job;
+		_dbJobQ.Flip();
 		while (_dbJobQ.size() > 0)
 		{
 			_dbJobQ.Dequeue(job);
@@ -162,16 +157,99 @@ void CollectServer::DBWriteThread()
 		}
 	}
 }
-bool CollectServer::FindServer(DWORD64 sessionID, int* serverNo)
+void CollectServer::ManagementThread()
+{
+	DWORD ret;
+	while (1)
+	{
+		ret = WaitForSingleObject(_hExitEvent, 5000);
+		switch (ret)
+		{
+		case WAIT_OBJECT_0:
+			return;
+		case WAIT_TIMEOUT:
+			TimeoutProc();
+			break;
+		default:
+			break;
+		}
+	}
+}
+void CollectServer::TimeoutProc()
 {
 	LockGuard_Shared<SRWLock> lockGuard(&_mapLock);
-	auto iter = _serverMap.find(sessionID);
-	if (iter != _serverMap.end())
+	DWORD currentTime = timeGetTime();
+	for (auto iter = _userMap.begin(); iter != _userMap.end(); ++iter)
 	{
-		*serverNo = iter->second;
+		SESSION_ID sessionID = iter->first;
+		USER* user = iter->second;
+		if (user->login)
+			continue;
+
+		if (currentTime - user->connectionTime >= dfNETWORK_NON_LOGIN_USER_TIMEOUT)
+			LanServer::Disconnect(sessionID);
+	}
+}
+CollectServer::USER* CollectServer::NewUser(DWORD64 sessionID)
+{
+	USER* user = new USER;
+	user->login = false;
+	user->connectionTime = timeGetTime();
+
+	_mapLock.Lock();
+	_userMap.insert({ sessionID, user });
+	_mapLock.UnLock();
+
+	return user;
+}
+void CollectServer::DeleteUser(DWORD64 sessionID)
+{
+	USER* user;
+
+	_mapLock.Lock();
+	auto iter = _userMap.find(sessionID);
+	user = iter->second;
+	_userMap.erase(iter);
+	_mapLock.UnLock();
+
+	delete user;
+}
+bool CollectServer::FindUser(DWORD64 sessionID, USER** user)
+{
+	LockGuard_Shared<SRWLock> lockGuard(&_mapLock);
+	auto iter = _userMap.find(sessionID);
+	if (iter != _userMap.end())
+	{
+		*user = iter->second;
 		return true;
 	}
 	return false;
+}
+DATA* CollectServer::NewData(int serverNo, BYTE dataType)
+{
+	DATA* data = new DATA(dataType);
+	data->totalData = 0;
+	data->iMin = 0;
+	data->iMax = 0;
+	data->iCall = 0;
+	data->lastLogTime = timeGetTime();
+
+	_mapLock.Lock();
+	_dataMap.insert({ serverNo, data });
+	_mapLock.UnLock();
+	return data;
+}
+void CollectServer::DeleteData(int serverNo)
+{
+	DATA* data;
+	LockGuard<SRWLock> lockGuard(&_mapLock);
+	auto range = _dataMap.equal_range(serverNo);
+	for (auto iter = range.first; iter != range.second;)
+	{
+		data = iter->second;
+		delete data;
+		iter = _dataMap.erase(iter);
+	}
 }
 bool CollectServer::FindData(int serverNo, BYTE dataType, DATA** data)
 {
@@ -182,7 +260,7 @@ bool CollectServer::FindData(int serverNo, BYTE dataType, DATA** data)
 	if (iter != range.second)
 	{
 		*data = iter->second;
-		return true;
+		return data;
 	}
 	return false;
 }
@@ -210,14 +288,17 @@ bool CollectServer::PacketProc_Login(DWORD64 sessionID, NetPacket* packet)
 	int serverNo;
 	(*packet) >> serverNo;
 
-	LockGuard<SRWLock> lockGuard(&_mapLock);
-	auto iter = _dataMap.find(sessionID);
-	if (iter == _dataMap.end())
-	{
-		_serverMap.insert({ sessionID, serverNo });
-		return true;
-	}
-	return false;
+	//--------------------------------------------------------------------
+	// 중복 로그인 확인
+	//--------------------------------------------------------------------
+	USER* user;
+	FindUser(sessionID, &user);
+	if (user->login)
+		return false;
+
+	user->serverNo = serverNo;
+	user->login = true;
+	return true;
 }
 bool CollectServer::PacketProc_DataUpdate(DWORD64 sessionID, NetPacket* packet)
 {
@@ -232,22 +313,19 @@ bool CollectServer::PacketProc_DataUpdate(DWORD64 sessionID, NetPacket* packet)
 	(*packet) >> timeStamp;
 
 	//--------------------------------------------------------------------
-	// 모니터링 데이터 찾기
+	// 로그인 여부 확인
 	//--------------------------------------------------------------------
-	int serverNo;
-	if (!FindServer(sessionID, &serverNo))
+	USER* user;
+	FindUser(sessionID, &user);
+	if (!user->login)
 		return false;
 
+	//--------------------------------------------------------------------
+	// 모니터링 데이터 찾기
+	//--------------------------------------------------------------------
 	DATA* data;
-	if (!FindData(serverNo, dataType, &data))
-	{
-		data = new DATA(dataType);
-		data->lastLogTime = timeGetTime();
-
-		_mapLock.Lock();
-		_dataMap.insert({ serverNo, data });
-		_mapLock.UnLock();
-	}
+	if (!FindData(user->serverNo, dataType, &data))
+		data = NewData(user->serverNo, dataType);
 
 	//--------------------------------------------------------------------
 	// 모니터링 데이터 갱신
@@ -266,7 +344,7 @@ bool CollectServer::PacketProc_DataUpdate(DWORD64 sessionID, NetPacket* packet)
 	DWORD currentTime = timeGetTime();
 	if (currentTime - data->lastLogTime >= dfDATABASE_LOG_WRITE_TERM)
 	{
-		dbLog = new DBMonitoringLog(serverNo
+		dbLog = new DBMonitoringLog(user->serverNo
 			, dataType
 			, data->totalData / data->iCall
 			, data->iMin
@@ -285,6 +363,6 @@ bool CollectServer::PacketProc_DataUpdate(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 모니터링 클라이언트에게 데이터 갱신 알림
 	//--------------------------------------------------------------------
-	_monitor->Update(serverNo, dataType, dataValue, timeStamp);
+	_monitor->Update(user->serverNo, dataType, dataValue, timeStamp);
 	return true;
 }

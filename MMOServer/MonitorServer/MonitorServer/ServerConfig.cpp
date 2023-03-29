@@ -3,8 +3,10 @@
 #include "../../Lib/TextParser/include/ConfigParser.h"
 #pragma comment(lib, "../../Lib/TextParser/lib64/TextParser.lib")
 
-SERVER_INFO ServerConfig::_serverInfo;
-DATABASE_INFO ServerConfig::_databaseInfo;
+SERVER ServerConfig::_server;
+DATABASE ServerConfig::_database;
+SERVICE ServerConfig::_service;
+SYSTEM ServerConfig::_system;
 
 bool ServerConfig::LoadFile(const wchar_t* filename)
 {
@@ -12,25 +14,25 @@ bool ServerConfig::LoadFile(const wchar_t* filename)
 	if (!confParser.LoadFile(L"Config.cnf"))
 		return false;
 
-	confParser.GetValue(L"SERVER", L"COLLECT_IP", _serverInfo.collect_ip);
-	confParser.GetValue(L"SERVER", L"COLLECT_PORT", &_serverInfo.collect_port);
-	confParser.GetValue(L"SERVER", L"COLLECT_IOCP_WORKER_CREATE", &_serverInfo.collect_workerCreateCnt);
-	confParser.GetValue(L"SERVER", L"COLLECT_IOCP_WORKER_RUNNING", &_serverInfo.collect_workerRunningCnt);
-	confParser.GetValue(L"SERVER", L"COLLECT_SESSION_MAX", (int*)&_serverInfo.collect_sessionMax);
-	confParser.GetValue(L"SERVER", L"MONITOR_IP", _serverInfo.monitor_ip);
-	confParser.GetValue(L"SERVER", L"MONITOR_PORT", &_serverInfo.monitor_port);
-	confParser.GetValue(L"SERVER", L"MONITOR_IOCP_WORKER_CREATE", &_serverInfo.monitor_workerCreateCnt);
-	confParser.GetValue(L"SERVER", L"MONITOR_IOCP_WORKER_RUNNING", &_serverInfo.monitor_workerRunningCnt);
-	confParser.GetValue(L"SERVER", L"MONITOR_SESSION_MAX", (int*)&_serverInfo.monitor_sessionMax);
-	confParser.GetValue(L"SERVER", L"PACKET_CODE", (int*)&_serverInfo.packetCode);
-	confParser.GetValue(L"SERVER", L"PACKET_KEY", (int*)&_serverInfo.packetKey);
-	confParser.GetValue(L"SERVER", L"LOGIN_KEY", _serverInfo.loginKey);
-	confParser.GetValue(L"SERVER", L"LOG_LEVEL", &_serverInfo.logLevel);
-	confParser.GetValue(L"SERVER", L"LOG_PATH", _serverInfo.logPath);
-	confParser.GetValue(L"DATABASE", L"IP", _databaseInfo.ip);
-	confParser.GetValue(L"DATABASE", L"PORT", &_databaseInfo.port);
-	confParser.GetValue(L"DATABASE", L"USER", _databaseInfo.user);
-	confParser.GetValue(L"DATABASE", L"PASSWORD", _databaseInfo.passwd);
-	confParser.GetValue(L"DATABASE", L"SCHEMA", _databaseInfo.schema);
+	confParser.GetValue(L"SERVER", L"COLLECT_IP", _server.collectIP);
+	confParser.GetValue(L"SERVER", L"COLLECT_PORT", &_server.collectPort);
+	confParser.GetValue(L"SERVER", L"COLLECT_IOCP_WORKER_CREATE", &_server.collectWorkerCreateCnt);
+	confParser.GetValue(L"SERVER", L"COLLECT_IOCP_WORKER_RUNNING", &_server.collectWorkerRunningCnt);
+	confParser.GetValue(L"SERVER", L"COLLECT_SESSION_MAX", (int*)&_server.collectSessionMax);
+	confParser.GetValue(L"SERVER", L"MONITOR_IP", _server.monitorIP);
+	confParser.GetValue(L"SERVER", L"MONITOR_PORT", &_server.monitorPort);
+	confParser.GetValue(L"SERVER", L"MONITOR_IOCP_WORKER_CREATE", &_server.monitorWorkerCreateCnt);
+	confParser.GetValue(L"SERVER", L"MONITOR_IOCP_WORKER_RUNNING", &_server.monitorWorkerRunningCnt);
+	confParser.GetValue(L"SERVER", L"MONITOR_SESSION_MAX", (int*)&_server.monitorSessionMax);
+	confParser.GetValue(L"SERVER", L"PACKET_CODE", (int*)&_server.packetCode);
+	confParser.GetValue(L"SERVER", L"PACKET_KEY", (int*)&_server.packetKey);
+	confParser.GetValue(L"SERVICE", L"LOGIN_KEY", _service.loginKey);
+	confParser.GetValue(L"SYSTEM", L"LOG_LEVEL", &_system.logLevel);
+	confParser.GetValue(L"SYSTEM", L"LOG_PATH", _system.logPath);
+	confParser.GetValue(L"DATABASE", L"IP", _database.ip);
+	confParser.GetValue(L"DATABASE", L"PORT", &_database.port);
+	confParser.GetValue(L"DATABASE", L"USER", _database.user);
+	confParser.GetValue(L"DATABASE", L"PASSWORD", _database.passwd);
+	confParser.GetValue(L"DATABASE", L"SCHEMA", _database.schema);
     return true;
 }

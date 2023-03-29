@@ -11,7 +11,7 @@ ProcessUsage::ProcessUsage(HANDLE hProcess)
 		hProcess = GetCurrentProcess();
 
 	_hProcess = hProcess;
-	GetModuleName(_hProcess, _processName);
+	GetModuleName(_hProcess, _processName, sizeof(_processName));
 
 	// PDH 쿼리 핸들 열기
 	PdhOpenQuery(NULL, NULL, &_pdhQuery);
@@ -58,7 +58,7 @@ float ProcessUsage::GetUseCPUKernelTime()
 }
 float ProcessUsage::GetUseMemoryMBytes()
 {
-	return (float)(_pdh_Value_Memory_UsePrivateBytes / (1000 * 1000));
+	return (float)(_pdh_Value_Memory_UsePrivateBytes / (1024 * 1024));
 }
 void ProcessUsage::InitPDHCounter()
 {

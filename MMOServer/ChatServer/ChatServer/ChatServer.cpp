@@ -14,7 +14,7 @@
 
 using namespace Jay;
 
-ChatServer::ChatServer() : _userPool(0), _playerPool(0), _jobPool(0)
+ChatServer::ChatServer() : _playerPool(0), _chatJobPool(0), _authJobPool(0), _loginPlayerCount(0)
 {
 }
 ChatServer::~ChatServer()
@@ -51,17 +51,13 @@ void ChatServer::Stop()
 	//--------------------------------------------------------------------
 	Release();
 }
-int ChatServer::GetUserCount()
-{
-	return _userMap.size();
-}
 int ChatServer::GetPlayerCount()
 {
 	return _playerMap.size();
 }
-int ChatServer::GetUseUserPool()
+int ChatServer::GetLoginPlayerCount()
 {
-	return _userPool.GetUseCount();
+	return _loginPlayerCount;
 }
 int ChatServer::GetUsePlayerPool()
 {
@@ -69,11 +65,11 @@ int ChatServer::GetUsePlayerPool()
 }
 int ChatServer::GetJobQueueCount()
 {
-	return _jobQ.size();
+	return _chatJobQ.size();
 }
 int ChatServer::GetUseJobPool()
 {
-	return _jobPool.GetUseCount();
+	return _chatJobPool.GetUseCount();
 }
 int ChatServer::GetUpdateTPS()
 {
@@ -88,26 +84,26 @@ void ChatServer::OnClientJoin(DWORD64 sessionID)
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 Job 할당
 	//--------------------------------------------------------------------
-	CHAT_JOB* job = _jobPool.Alloc();
+	CHAT_JOB* job = _chatJobPool.Alloc();
 	job->type = JOB_TYPE_CLIENT_JOIN;
 	job->sessionID = sessionID;
 
 	//--------------------------------------------------------------------
 	// Job 큐잉
 	//--------------------------------------------------------------------
-	_jobQ.Enqueue(job);
+	_chatJobQ.Enqueue(job);
 
 	//--------------------------------------------------------------------
 	// UpdateThread 에게 Job 이벤트 알림
 	//--------------------------------------------------------------------
-	SetEvent(_hJobEvent);
+	SetEvent(_hChatJobEvent);
 }
 void ChatServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
 {
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 Job 할당
 	//--------------------------------------------------------------------
-	CHAT_JOB* job = _jobPool.Alloc();
+	CHAT_JOB* job = _chatJobPool.Alloc();
 	job->type = JOB_TYPE_MESSAGE_RECV;
 	job->sessionID = sessionID;
 	job->packet = packet;
@@ -116,31 +112,31 @@ void ChatServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
 	// Job 큐잉
 	//--------------------------------------------------------------------
 	packet->IncrementRefCount();
-	_jobQ.Enqueue(job);
+	_chatJobQ.Enqueue(job);
 
 	//--------------------------------------------------------------------
 	// UpdateThread 에게 Job 이벤트 알림
 	//--------------------------------------------------------------------
-	SetEvent(_hJobEvent);
+	SetEvent(_hChatJobEvent);
 }
 void ChatServer::OnClientLeave(DWORD64 sessionID)
 {
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 Job 할당
 	//--------------------------------------------------------------------
-	CHAT_JOB* job = _jobPool.Alloc();
+	CHAT_JOB* job = _chatJobPool.Alloc();
 	job->type = JOB_TYPE_CLIENT_LEAVE;
 	job->sessionID = sessionID;
 
 	//--------------------------------------------------------------------
 	// Job 큐잉
 	//--------------------------------------------------------------------
-	_jobQ.Enqueue(job);
+	_chatJobQ.Enqueue(job);
 
 	//--------------------------------------------------------------------
 	// UpdateThread 에게 Job 이벤트 알림
 	//--------------------------------------------------------------------
-	SetEvent(_hJobEvent);
+	SetEvent(_hChatJobEvent);
 }
 void ChatServer::OnError(int errcode, const wchar_t* funcname, int linenum, WPARAM wParam, LPARAM lParam)
 {
@@ -164,16 +160,24 @@ bool ChatServer::Initial()
 	if (_hExitEvent == NULL)
 		return false;
 
-	_hJobEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	if (_hJobEvent == NULL)
+	_hChatJobEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	if (_hChatJobEvent == NULL)
 	{
 		CloseHandle(_hExitEvent);
 		return false;
 	}
 
+	_hAuthJobEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	if (_hAuthJobEvent == NULL)
+	{
+		CloseHandle(_hExitEvent);
+		CloseHandle(_hChatJobEvent);
+		return false;
+	}
+
 	//--------------------------------------------------------------------
 	// Redis Connect
-	//--------------------------------------------------------------------
+	//--------------------------------------------------------------------	
 	std::string redisIP;
 	UnicodeToString(ServerConfig::GetRedisIP(), redisIP);
 	_memorydb.connect(redisIP, ServerConfig::GetRedisPort());
@@ -182,6 +186,7 @@ bool ChatServer::Initial()
 	// Thread Begin
 	//--------------------------------------------------------------------
 	_updateThread = std::thread(&ChatServer::UpdateThread, this);
+	_authThread = std::thread(&ChatServer::AuthThread, this);
 	_managementThread = std::thread(&ChatServer::ManagementThread, this);
 	return true;
 }
@@ -192,20 +197,13 @@ void ChatServer::Release()
 	//--------------------------------------------------------------------
 	SetEvent(_hExitEvent);
 	_updateThread.join();
+	_authThread.join();
 	_managementThread.join();
 
 	//--------------------------------------------------------------------
 	// Redis Disconnect
 	//--------------------------------------------------------------------
 	_memorydb.disconnect();
-
-	USER* user;
-	for (auto iter = _userMap.begin(); iter != _userMap.end();)
-	{
-		user = iter->second;
-		_userPool.Free(user);
-		iter = _userMap.erase(iter);
-	}
 
 	PLAYER* player;
 	for (auto iter = _playerMap.begin(); iter != _playerMap.end();)
@@ -215,21 +213,29 @@ void ChatServer::Release()
 		iter = _playerMap.erase(iter);
 	}
 
-	CHAT_JOB* job;
-	while (_jobQ.size() > 0)
+	CHAT_JOB* chatJob;
+	while (_chatJobQ.size() > 0)
 	{
-		_jobQ.Dequeue(job);
-		if (job->type == JOB_TYPE_PACKET_RECV)
-			NetPacket::Free(job->packet);
-		_jobPool.Free(job);
+		_chatJobQ.Dequeue(chatJob);
+		if (chatJob->type == JOB_TYPE_MESSAGE_RECV)
+			NetPacket::Free(chatJob->packet);
+		_chatJobPool.Free(chatJob);
+	}
+
+	AUTH_JOB* authJob;
+	while (_authJobQ.size() > 0)
+	{
+		_authJobQ.Dequeue(authJob);
+		_authJobPool.Free(authJob);
 	}
 
 	CloseHandle(_hExitEvent);
-	CloseHandle(_hJobEvent);
+	CloseHandle(_hChatJobEvent);
+	CloseHandle(_hAuthJobEvent);
 }
 void ChatServer::UpdateThread()
 {
-	HANDLE hHandle[2] = { _hJobEvent, _hExitEvent };
+	HANDLE hHandle[2] = { _hChatJobEvent, _hExitEvent };
 	DWORD ret;
 	while (1)
 	{
@@ -238,12 +244,12 @@ void ChatServer::UpdateThread()
 			break;
 
 		CHAT_JOB* job;
-		while (_jobQ.size() > 0)
+		while (_chatJobQ.size() > 0)
 		{
 			//--------------------------------------------------------------------
 			// Job 디큐잉
 			//--------------------------------------------------------------------
-			_jobQ.Dequeue(job);
+			_chatJobQ.Dequeue(job);
 
 			//--------------------------------------------------------------------
 			// Job Type 에 따른 분기 처리
@@ -272,12 +278,49 @@ void ChatServer::UpdateThread()
 			//--------------------------------------------------------------------
 			// 오브젝트풀에 Job 반납
 			//--------------------------------------------------------------------
-			_jobPool.Free(job);
+			_chatJobPool.Free(job);
 
 			_curUpdateTPS++;
 		}
 	}
 }
+void ChatServer::AuthThread()
+{
+	HANDLE hHandle[2] = { _hAuthJobEvent, _hExitEvent };
+	DWORD ret;
+	while (1)
+	{
+		ret = WaitForMultipleObjects(2, hHandle, FALSE, INFINITE);
+		if ((ret - WAIT_OBJECT_0) != 0)
+			break;
+
+		AUTH_JOB* job;
+		while (_authJobQ.size() > 0)
+		{
+			//--------------------------------------------------------------------
+			// Job 디큐잉
+			//--------------------------------------------------------------------
+			_authJobQ.Dequeue(job);
+
+			//--------------------------------------------------------------------
+			// Job Type 에 따른 분기 처리
+			//--------------------------------------------------------------------
+			switch (job->type)
+			{
+			case JOB_TYPE_LOGIN_AUTH:
+				AuthProc(job->sessionID, job->accountNo, job->token);
+				break;
+			default:
+				break;
+			}
+
+			//--------------------------------------------------------------------
+			// 오브젝트풀에 Job 반납
+			//--------------------------------------------------------------------
+			_authJobPool.Free(job);
+		}
+	}
+} 
 void ChatServer::ManagementThread()
 {
 	DWORD ret;
@@ -305,8 +348,12 @@ void ChatServer::JoinProc(DWORD64 sessionID)
 	//--------------------------------------------------------------------
 	// 현재 접속자 수를 확인하여 Join 여부 판단
 	//--------------------------------------------------------------------
-	if (_userMap.size() >= ServerConfig::GetUserMax())
+	if (_playerMap.size() >= ServerConfig::GetUserMax())
 	{
+		Logger::WriteLog(L"Chat", LOG_LEVEL_DEBUG, L"%s() line: %d - sessionID: %p"
+			, __FUNCTIONW__
+			, __LINE__
+			, sessionID);
 		Disconnect(sessionID);
 		return;
 	}
@@ -314,7 +361,7 @@ void ChatServer::JoinProc(DWORD64 sessionID)
 	//--------------------------------------------------------------------
 	// 새로 연결된 세션에 대한 객체 할당
 	//--------------------------------------------------------------------
-	NewUser(sessionID);
+	NewPlayer(sessionID);
 }
 void ChatServer::RecvProc(DWORD64 sessionID, NetPacket* packet)
 {
@@ -341,27 +388,47 @@ void ChatServer::RecvProc(DWORD64 sessionID, NetPacket* packet)
 void ChatServer::LeaveProc(DWORD64 sessionID)
 {
 	//--------------------------------------------------------------------
-	// 연결 종료한 세션의 객체 제거
+	// 연결 종료한 세션의 캐릭터 제거
 	//--------------------------------------------------------------------
-	USER* user = FindUser(sessionID);
-	if (user->login)
-		DeletePlayer(user->accountNo);
-	DeleteUser(sessionID);
+	PLAYER* player = FindPlayer(sessionID);
+	if (player == nullptr)
+	{
+		Logger::WriteLog(L"Chat", LOG_LEVEL_DEBUG, L"%s() line: %d - sessionID: %p"
+			, __FUNCTIONW__
+			, __LINE__
+			, sessionID);
+		return;
+	}
+
+	if (player->login)
+		_loginPlayerCount--;
+
+	DeletePlayer(sessionID);
 }
 void ChatServer::LoginProc(DWORD64 sessionID, bool result)
 {
 	//--------------------------------------------------------------------
 	// 로그인 완료 처리
 	//--------------------------------------------------------------------
-	USER* user = FindUser(sessionID);
-	if (user->login)
+	PLAYER* player = FindPlayer(sessionID);
+	if (player == nullptr)
+		return;
+
+	if (player->login)
 	{
+		Logger::WriteLog(L"Chat", LOG_LEVEL_DEBUG, L"%s() line: %d - sessionID: %p"
+			, __FUNCTIONW__
+			, __LINE__
+			, sessionID);
 		Disconnect(sessionID);
 		return;
 	}
 
-	NewPlayer(user->sessionID, user->accountNo);
-	user->login = true;
+	if (result)
+	{
+		player->login = true;
+		_loginPlayerCount++;
+	}
 
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 직렬화 버퍼 할당
@@ -371,57 +438,73 @@ void ChatServer::LoginProc(DWORD64 sessionID, bool result)
 	//--------------------------------------------------------------------
 	// 해당 유저에게 로그인 완료 메시지 보내기
 	//--------------------------------------------------------------------
-	Packet::MakeChatLogin(resPacket, result, user->accountNo);
-	SendPacket(user->sessionID, resPacket);
+	Packet::MakeChatLogin(resPacket, result, player->accountNo);
+	SendPacket(player->sessionID, resPacket);
 
 	//--------------------------------------------------------------------
 	// 오브젝트풀에 직렬화 버퍼 반납
 	//--------------------------------------------------------------------
 	NetPacket::Free(resPacket);
 }
-void ChatServer::NewUser(DWORD64 sessionID)
+void ChatServer::AuthProc(DWORD64 sessionID, __int64 accountNo, char* token)
 {
-	USER* user = _userPool.Alloc();
-	user->sessionID = sessionID;
-	user->login = false;
-	
-	_userMap.insert({ sessionID, user });
-}
-void ChatServer::DeleteUser(DWORD64 sessionID)
-{
-	USER* user;
-	auto iter = _userMap.find(sessionID);
-	if (iter != _userMap.end())
+	//--------------------------------------------------------------------
+	// Redis 에서 세션 토큰 얻기 (Key: AccountNo, Value: SessionKey)
+	//--------------------------------------------------------------------
+	std::string key = std::to_string(accountNo);
+	std::future<cpp_redis::reply> future = _memorydb.get(key);
+	_memorydb.sync_commit();
+
+	//--------------------------------------------------------------------
+	// 세션 토큰 인증
+	//--------------------------------------------------------------------
+	WORD type;
+	cpp_redis::reply reply = future.get();
+	if (reply.is_string() && reply.as_string().compare(token) == 0)
 	{
-		user = iter->second;
-		_userMap.erase(iter);
-		_userPool.Free(user);
+		//--------------------------------------------------------------------
+		// Redis 에서 인증 완료한 토큰 제거
+		//--------------------------------------------------------------------
+		std::vector<std::string> keys(1);
+		keys.emplace_back(std::move(key));
+		_memorydb.del(keys);
+		_memorydb.sync_commit();
+
+		type = JOB_TYPE_LOGIN_SUCCESS;
 	}
+	else
+		type = JOB_TYPE_LOGIN_FAIL;
+
+	//--------------------------------------------------------------------
+	// 오브젝트풀에서 Job 할당
+	//--------------------------------------------------------------------	
+	CHAT_JOB* job = _chatJobPool.Alloc();
+	job->type = type;
+	job->sessionID = sessionID;
+
+	//--------------------------------------------------------------------
+	// Job 큐잉
+	//--------------------------------------------------------------------
+	_chatJobQ.Enqueue(job);
+
+	//--------------------------------------------------------------------
+	// UpdateThread 에게 Job 이벤트 알림
+	//--------------------------------------------------------------------
+	SetEvent(_hChatJobEvent);
 }
-USER* ChatServer::FindUser(INT64 sessionID)
-{
-	USER* user;
-	auto iter = _userMap.find(sessionID);
-	if (iter != _userMap.end())
-	{
-		user = iter->second;
-		return user;
-	}
-	return nullptr;
-}
-void ChatServer::NewPlayer(DWORD64 sessionID, INT64 accountNo)
+void ChatServer::NewPlayer(DWORD64 sessionID)
 {
 	PLAYER* player = _playerPool.Alloc();
 	player->sessionID = sessionID;
-	player->accountNo = accountNo;
 	player->sector.x = dfUNKNOWN_SECTOR;
 	player->sector.y = dfUNKNOWN_SECTOR;
+	player->login = false;
 
-	_playerMap.insert({ accountNo, player });
+	_playerMap.insert({ sessionID, player });
 }
-void ChatServer::DeletePlayer(INT64 accountNo)
+void ChatServer::DeletePlayer(DWORD64 sessionID)
 {
-	auto iter = _playerMap.find(accountNo);
+	auto iter = _playerMap.find(sessionID);
 	PLAYER* player = iter->second;
 	if (player->sector.x != dfUNKNOWN_SECTOR && player->sector.y != dfUNKNOWN_SECTOR)
 		RemovePlayer_Sector(player);
@@ -429,10 +512,10 @@ void ChatServer::DeletePlayer(INT64 accountNo)
 	_playerMap.erase(iter);
 	_playerPool.Free(player);
 }
-PLAYER* ChatServer::FindPlayer(INT64 accountNo)
+PLAYER* ChatServer::FindPlayer(DWORD64 sessionID)
 {
 	PLAYER* player;
-	auto iter = _playerMap.find(accountNo);
+	auto iter = _playerMap.find(sessionID);
 	if (iter != _playerMap.end())
 	{
 		player = iter->second;
@@ -553,7 +636,7 @@ bool ChatServer::PacketProc_ChatLogin(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 로그인 메시지 처리
 	//--------------------------------------------------------------------
-	USER* user = FindUser(sessionID);
+	PLAYER* player = FindPlayer(sessionID);
 	INT64 accountNo;
 	WCHAR id[20];
 	WCHAR nickname[20];
@@ -572,45 +655,32 @@ bool ChatServer::PacketProc_ChatLogin(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 이미 로그인한 유저인지 검증
 	//--------------------------------------------------------------------
-	if (user->login)
+	if (player->login)
 		return false;
 
-	user->accountNo = accountNo;
-	wcscpy_s(user->id, sizeof(id) / 2, id);
-	wcscpy_s(user->nickname, sizeof(nickname) / 2, nickname);
+	wcscpy_s(player->id, sizeof(id) / 2, id);
+	wcscpy_s(player->nickname, sizeof(nickname) / 2, nickname);
+	player->accountNo = accountNo;
 
 	//--------------------------------------------------------------------
-	// Redis 에서 세션 토큰 얻기 (Key: AccountNo, Value: SessionKey)
+	// 오브젝트풀에서 Job 할당
+	//--------------------------------------------------------------------		
+	AUTH_JOB* job = _authJobPool.Alloc();
+	job->type = JOB_TYPE_LOGIN_AUTH;
+	job->sessionID = sessionID;
+	job->accountNo = accountNo;
+	memmove(job->token, sessionKey, sizeof(sessionKey));
+	job->token[sizeof(sessionKey)] = '\0';
+	
 	//--------------------------------------------------------------------
-	std::string key(std::to_string(accountNo));
-	std::string token(sessionKey, sizeof(sessionKey));
-	_memorydb.get(key, [this, sessionID, sessionKey = std::move(token)](cpp_redis::reply& reply) {
-		//--------------------------------------------------------------------
-		// 오브젝트풀에서 Job 할당
-		//--------------------------------------------------------------------
-		CHAT_JOB* job = _jobPool.Alloc();
-		job->type = (sessionKey == reply.as_string()) ? JOB_TYPE_LOGIN_SUCCESS : JOB_TYPE_LOGIN_FAIL;
-		job->sessionID = sessionID;
-		
-		//--------------------------------------------------------------------
-		// Job 큐잉
-		//--------------------------------------------------------------------
-		_jobQ.Enqueue(job);
-		
-		//--------------------------------------------------------------------
-		// UpdateThread 에게 Job 이벤트 알림
-		//--------------------------------------------------------------------
-		SetEvent(_hJobEvent);
-	});
+	// Job 큐잉
+	//--------------------------------------------------------------------
+	_authJobQ.Enqueue(job);
 
 	//--------------------------------------------------------------------
-	// Redis 에서 세션 토큰 제거
+	// AuthThread 에게 Job 이벤트 알림
 	//--------------------------------------------------------------------
-	std::vector<std::string> vectKey(1);
-	vectKey.emplace_back(std::move(key));
-	_memorydb.del(vectKey);
-
-	_memorydb.commit();
+	SetEvent(_hAuthJobEvent);
 	return true;
 }
 bool ChatServer::PacketProc_ChatSectorMove(DWORD64 sessionID, NetPacket* packet)
@@ -626,14 +696,14 @@ bool ChatServer::PacketProc_ChatSectorMove(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 로그인하지 않은 유저인지 검증
 	//--------------------------------------------------------------------
-	USER* user = FindUser(sessionID);
-	if (!user->login)
+	PLAYER* player = FindPlayer(sessionID);
+	if (!player->login)
 		return false;
 
 	//--------------------------------------------------------------------
 	// 계정 번호 검증
 	//--------------------------------------------------------------------
-	if (user->accountNo != accountNo)
+	if (player->accountNo != accountNo)
 		return false;
 
 	//--------------------------------------------------------------------
@@ -645,7 +715,6 @@ bool ChatServer::PacketProc_ChatSectorMove(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 섹터 이동 처리
 	//--------------------------------------------------------------------
-	PLAYER* player = FindPlayer(user->accountNo);
 	if (player->sector.x != sectorX || player->sector.y != sectorY)
 		UpdatePlayer_Sector(player, sectorX, sectorY);
 
@@ -688,14 +757,14 @@ bool ChatServer::PacketProc_ChatMessage(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 로그인하지 않은 유저인지 검증
 	//--------------------------------------------------------------------
-	USER* user = FindUser(sessionID);
-	if (!user->login)
+	PLAYER* player = FindPlayer(sessionID);
+	if (!player->login)
 		return false;
 
 	//--------------------------------------------------------------------
 	// 계정 번호 검증
 	//--------------------------------------------------------------------
-	if (user->accountNo != accountNo)
+	if (player->accountNo != accountNo)
 		return false;
 
 	//--------------------------------------------------------------------
@@ -707,13 +776,11 @@ bool ChatServer::PacketProc_ChatMessage(DWORD64 sessionID, NetPacket* packet)
 	// 주변 영향권 섹터의 유저들에게 채팅 메시지 보내기
 	//--------------------------------------------------------------------
 	Packet::MakeChatMessage(resPacket
-		, user->accountNo
-		, user->id
-		, user->nickname
+		, player->accountNo
+		, player->id
+		, player->nickname
 		, messageLen
 		, message);
-
-	PLAYER* player = FindPlayer(user->accountNo);
 	SendSectorAround(player, resPacket);
 
 	//--------------------------------------------------------------------

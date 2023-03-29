@@ -92,9 +92,6 @@
     <ClInclude Include="..\..\Common\FileUtil.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Common\LockFreeQueue.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Common\Logger.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -125,10 +122,19 @@
     <ClInclude Include="..\..\Common\ProcessUsage.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="ChatJob.h">
+    <ClInclude Include="Job.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Common\ObjectPool.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\LFQueue.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\LFObjectPool_TLS.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\MessageQueue.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

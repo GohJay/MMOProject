@@ -119,12 +119,6 @@
     <ClInclude Include="..\..\Common\FileUtil.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Common\LockFreeQueue.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Common\LockFreeStack.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Common\Logger.h">
       <Filter>Common</Filter>
     </ClInclude>

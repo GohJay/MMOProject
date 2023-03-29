@@ -180,8 +180,10 @@
     <ClInclude Include="..\..\Common\CommonProtocol.h" />
     <ClInclude Include="..\..\Common\CrashDump.h" />
     <ClInclude Include="..\..\Common\FileUtil.h" />
-    <ClInclude Include="..\..\Common\LockFreeQueue.h" />
+    <ClInclude Include="..\..\Common\LFObjectPool_TLS.h" />
+    <ClInclude Include="..\..\Common\LFQueue.h" />
     <ClInclude Include="..\..\Common\Logger.h" />
+    <ClInclude Include="..\..\Common\MessageQueue.h" />
     <ClInclude Include="..\..\Common\ObjectPool.h" />
     <ClInclude Include="..\..\Common\ProcesserUsage.h" />
     <ClInclude Include="..\..\Common\ProcessUsage.h" />
@@ -191,7 +193,7 @@
     <ClInclude Include="..\..\Lib\Network\include\NetPacket.h" />
     <ClInclude Include="..\..\Lib\Network\include\NetServer.h" />
     <ClInclude Include="..\..\Lib\TextParser\include\ConfigParser.h" />
-    <ClInclude Include="ChatJob.h" />
+    <ClInclude Include="Job.h" />
     <ClInclude Include="ChatServer.h" />
     <ClInclude Include="Define.h" />
     <ClInclude Include="MonitorClient.h" />

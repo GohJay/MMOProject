@@ -211,8 +211,6 @@
     <ClInclude Include="..\..\Common\DBConnector.h" />
     <ClInclude Include="..\..\Common\DBConnector_TLS.h" />
     <ClInclude Include="..\..\Common\FileUtil.h" />
-    <ClInclude Include="..\..\Common\LockFreeQueue.h" />
-    <ClInclude Include="..\..\Common\LockFreeStack.h" />
     <ClInclude Include="..\..\Common\Logger.h" />
     <ClInclude Include="..\..\Common\ProcesserUsage.h" />
     <ClInclude Include="..\..\Common\ProcessUsage.h" />

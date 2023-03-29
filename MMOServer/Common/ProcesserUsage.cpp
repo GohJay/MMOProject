@@ -51,7 +51,7 @@ float ProcesserUsage::GetUseCPUKernelTime()
 }
 float ProcesserUsage::GetUseNonpagedPoolMBytes()
 {
-	return (float)(_pdh_Value_NPPool_UseBytes / (1000 * 1000));
+	return (float)(_pdh_Value_NPPool_UseBytes / (1024 * 1024));
 }
 float ProcesserUsage::GetFreeMemoryMBytes()
 {
@@ -59,11 +59,11 @@ float ProcesserUsage::GetFreeMemoryMBytes()
 }
 float ProcesserUsage::GetNetworkRecvKBytes()
 {
-	return (float)(_pdh_Value_Network_RecvBytes / 1000);
+	return (float)(_pdh_Value_Network_RecvBytes / 1024);
 }
 float ProcesserUsage::GetNetworkSendKBytes()
 {
-	return (float)(_pdh_Value_Network_SendBytes / 1000);
+	return (float)(_pdh_Value_Network_SendBytes / 1024);
 }
 void ProcesserUsage::AddEthernetCounter()
 {

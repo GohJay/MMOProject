@@ -8,6 +8,7 @@
 
 LoginServer g_LoginServer;
 MonitorClient g_MonitorClient(&g_LoginServer);
+time_t g_StartTime;
 bool g_StopSignal = false;
 bool g_ControlMode = false;
 
@@ -61,18 +62,18 @@ bool Init()
 
 	Jay::Logger::SetLogLevel(ServerConfig::GetLogLevel());
 	Jay::Logger::SetLogPath(ServerConfig::GetLogPath());
+
+	g_StartTime = time(NULL);
 	return true;
 }
 
 void Monitor()
 {
 	tm stTime;
-	time_t timer;
-	timer = time(NULL);
-	localtime_s(&stTime, &timer);
+	localtime_s(&stTime, &g_StartTime);
 
 	wprintf_s(L"\
-[%d/%02d/%02d %02d:%02d:%02d]\n\
+StartTime: %d/%02d/%02d %02d:%02d:%02d\n\
 ------------------------------------\n\
 Packet Pool Capacity: %d\n\
 Packet Pool Use: %d\n\

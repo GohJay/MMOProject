@@ -3,7 +3,7 @@
 
 struct DATA
 {
-	DATA(BYTE type) : dataType(type), totalData(0), iMin(0), iMax(0), iCall(0)
+	DATA(BYTE type) : dataType(type)
 	{
 	}
 

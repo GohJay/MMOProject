@@ -1,20 +1,18 @@
 #pragma once
 #include "../../Lib/Network/include/NetServer.h"
 #include "../../Common/CommonProtocol.h"
-#include "../../Common/LockFreeQueue.h"
 #include "../../Common/ObjectPool.h"
 #include "../../Common/LFObjectPool_TLS.h"
+#include "../../Common/LFQueue.h"
+#include "../../Common/MessageQueue.h"
 #include "Define.h"
 #include "Object.h"
-#include "ChatJob.h"
+#include "Job.h"
+#include <thread>
 #include <unordered_map>
 #include <cpp_redis/cpp_redis>
-#include <list>
-#include <thread>
-#include <atomic>
 
 typedef DWORD64 SESSION_ID;
-typedef INT64 ACCOUNT_NO;
 
 class ChatServer : public Jay::NetServer
 {
@@ -24,9 +22,8 @@ public:
 public:
 	bool Start(const wchar_t* ipaddress, int port, int workerCreateCnt, int workerRunningCnt, WORD sessionMax, BYTE packetCode, BYTE packetKey, int timeoutSec = 0, bool nagle = true);
 	void Stop();
-	int GetUserCount();
 	int GetPlayerCount();
-	int GetUseUserPool();
+	int GetLoginPlayerCount();
 	int GetUsePlayerPool();
 	int GetJobQueueCount();
 	int GetUseJobPool();
@@ -41,19 +38,18 @@ private:
 	bool Initial();
 	void Release();
 	void UpdateThread();
+	void AuthThread();
 	void ManagementThread();
+private:
 	void UpdateTPS();
 	void JoinProc(DWORD64 sessionID);
 	void RecvProc(DWORD64 sessionID, Jay::NetPacket* packet);
 	void LeaveProc(DWORD64 sessionID);
 	void LoginProc(DWORD64 sessionID, bool result);
-private:
-	void NewUser(DWORD64 sessionID);
-	void DeleteUser(DWORD64 sessionID);
-	USER* FindUser(INT64 sessionID);
-	void NewPlayer(DWORD64 sessionID, INT64 accountNo);
-	void DeletePlayer(INT64 accountNo);
-	PLAYER* FindPlayer(INT64 accountNo);
+	void AuthProc(DWORD64 sessionID, __int64 accountNo, char* token);
+	void NewPlayer(DWORD64 sessionID);
+	void DeletePlayer(DWORD64 sessionID);
+	PLAYER* FindPlayer(DWORD64 sessionID);
 	bool IsMovablePlayer(int sectorX, int sectorY);
 	void AddPlayer_Sector(PLAYER* player, int sectorX, int sectorY);
 	void RemovePlayer_Sector(PLAYER* player);
@@ -67,18 +63,21 @@ private:
 	bool PacketProc_ChatSectorMove(DWORD64 sessionID, Jay::NetPacket* packet);
 	bool PacketProc_ChatMessage(DWORD64 sessionID, Jay::NetPacket* packet);
 private:
-	std::unordered_map<SESSION_ID, USER*> _userMap;
-	std::unordered_map<ACCOUNT_NO, PLAYER*> _playerMap;
-	Jay::ObjectPool<USER> _userPool;
+	std::unordered_map<SESSION_ID, PLAYER*> _playerMap;
 	Jay::ObjectPool<PLAYER> _playerPool;
-	Jay::LockFreeQueue<CHAT_JOB*> _jobQ;
-	Jay::LFObjectPool_TLS<CHAT_JOB> _jobPool;
-	HANDLE _hJobEvent;
+	Jay::LFQueue<CHAT_JOB*> _chatJobQ;
+	Jay::LFQueue<AUTH_JOB*> _authJobQ;
+	Jay::LFObjectPool_TLS<CHAT_JOB> _chatJobPool;
+	Jay::LFObjectPool_TLS<AUTH_JOB> _authJobPool;
+	int _loginPlayerCount;
+	HANDLE _hChatJobEvent;
+	HANDLE _hAuthJobEvent;
 	HANDLE _hExitEvent;
+	std::thread _updateThread;
+	std::thread _authThread;
+	std::thread _managementThread;
 	std::atomic<int> _oldUpdateTPS;
 	std::atomic<int> _curUpdateTPS;
-	std::thread _updateThread;
-	std::thread _managementThread;
 	std::list<PLAYER*> _sectorList[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
 	cpp_redis::client _memorydb;
 };

@@ -1,7 +1,7 @@
 #ifndef __DB_CONNECTOR_TLS__H_
 #define __DB_CONNECTOR_TLS__H_
 #include "DBConnector.h"
-#include "LockFreeStack.h"
+#include "LFStack.h"
 
 namespace Jay
 {
@@ -72,7 +72,7 @@ namespace Jay
 		DBConnector* GetCurrentDB();
 	private:
 		PROPERTY _property;
-		LockFreeStack<DBConnector*> _gcStack;
+		LFStack<DBConnector*> _gcStack;
 		__declspec(thread) static DBConnector* _tlsDB;
 	};
 }

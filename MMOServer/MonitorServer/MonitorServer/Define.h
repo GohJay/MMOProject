@@ -1,34 +1,42 @@
 #pragma once
 
-#define dfDATABASE_LOG_WRITE_TERM		6000 * 10 * 10
+#define dfDATABASE_LOG_WRITE_TERM			6000 * 10 * 10
+#define dfNETWORK_NON_LOGIN_USER_TIMEOUT	1000 * 10
 
-struct SERVER_INFO
+struct SERVER
 {
 	//-----------------------------------
 	// CollectServer Info
 	//-----------------------------------
-	wchar_t collect_ip[16];
-	int collect_port;
-	int collect_workerCreateCnt;
-	int collect_workerRunningCnt;
-	WORD collect_sessionMax;
+	wchar_t collectIP[16];
+	int collectPort;
+	int collectWorkerCreateCnt;
+	int collectWorkerRunningCnt;
+	WORD collectSessionMax;
 
 	//-----------------------------------
 	// MonitorServer Info
 	//-----------------------------------
-	wchar_t monitor_ip[16];
-	int monitor_port;
-	int monitor_workerCreateCnt;
-	int monitor_workerRunningCnt;
-	WORD monitor_sessionMax;
+	wchar_t monitorIP[16];
+	int monitorPort;
+	int monitorWorkerCreateCnt;
+	int monitorWorkerRunningCnt;
+	WORD monitorSessionMax;
 	BYTE packetCode;
 	BYTE packetKey;
 
+};
+
+struct SERVICE
+{
 	//-----------------------------------
 	// MonitorServer LoginKey
 	//-----------------------------------
 	wchar_t loginKey[33];
+};
 
+struct SYSTEM
+{
 	//-----------------------------------
 	// System Log
 	//-----------------------------------
@@ -36,7 +44,7 @@ struct SERVER_INFO
 	wchar_t logPath[MAX_PATH / 2];
 };
 
-struct DATABASE_INFO
+struct DATABASE
 {
 	//-----------------------------------
 	// MySQL 접속 정보

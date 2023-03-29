@@ -17,10 +17,10 @@ public:
 	static const wchar_t* GetMonitorServerIP() { return _client.ip; }
 	static int GetMonitorServerPort() { return _client.port; }
 	static bool IsMonitorReconnect() { return _client.reconnect; }
-	static const wchar_t* GetGameServerIP() { return _service.gameserver_ip; }
-	static int GetGameServerPort() { return _service.gameserver_port; }
-	static const wchar_t* GetChatServerIP() { return _service.chatserver_ip; }
-	static int GetChatServerPort() { return _service.chatserver_port; }
+	static const wchar_t* GetGameServerIP() { return _service.gameServerIP; }
+	static int GetGameServerPort() { return _service.gameServerPort; }
+	static const wchar_t* GetChatServerIP() { return _service.chatServerIP; }
+	static int GetChatServerPort() { return _service.chatServerPort; }
 	static int GetLogLevel() { return _system.logLevel; }
 	static const wchar_t* GetLogPath() { return _system.logPath; }
 	static const wchar_t* GetDatabaseIP() { return _database.ip; }
@@ -28,9 +28,9 @@ public:
 	static const wchar_t* GetDatabaseUser() { return _database.user; }
 	static const wchar_t* GetDatabasePassword() { return _database.passwd; }
 	static const wchar_t* GetDatabaseSchema() { return _database.schema; }
-	static const wchar_t* GetRedisIP() { return _database.redis_ip; }
-	static int GetRedisPort() { return _database.redis_port; }
-	static int GetRedisTimeoutSec() { return _database.redis_timeout_sec; }
+	static const wchar_t* GetRedisIP() { return _database.redisIP; }
+	static int GetRedisPort() { return _database.redisPort; }
+	static int GetRedisTimeoutSec() { return _database.redisTimeoutSec; }
 private:
 	static SERVER _server;
 	static CLIENT _client;

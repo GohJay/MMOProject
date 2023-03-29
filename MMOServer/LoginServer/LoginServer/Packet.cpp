@@ -26,4 +26,3 @@ void Packet::MakeMonitorDataUpdate(Jay::NetPacket* packet, BYTE dataType, int da
 	(*packet) << dataValue;
 	(*packet) << timeStamp;
 }
-

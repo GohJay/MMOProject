@@ -2,11 +2,12 @@
 #include "MonitorServer.h"
 #include "Object.h"
 #include "DBJob.h"
+#include "Object.h"
 #include "../../Lib/Network/include/LanServer.h"
 #include "../../Common/CommonProtocol.h"
 #include "../../Common/Lock.h"
 #include "../../Common/DBConnector.h"
-#include "../../Common/Lock.h"
+#include "../../Common/MessageQueue.h"
 #include <unordered_map>
 #include <thread>
 
@@ -15,6 +16,13 @@ typedef INT SERVER_NO;
 
 class CollectServer : public Jay::LanServer
 {
+private:
+	struct USER
+	{
+		bool login;
+		int serverNo;
+		DWORD connectionTime;
+	};
 public:
 	CollectServer(MonitorServer* monitor);
 	~CollectServer();
@@ -31,20 +39,28 @@ private:
 	bool Initial();
 	void Release();
 	void DBWriteThread();
+	void ManagementThread();
 private:
-	bool FindServer(DWORD64 sessionID, int* serverNo);
+	void TimeoutProc();
+	USER* NewUser(DWORD64 sessionID);
+	void DeleteUser(DWORD64 sessionID);
+	bool FindUser(DWORD64 sessionID, USER** user);
+	DATA* NewData(int serverNo, BYTE dataType);
+	void DeleteData(int serverNo);
 	bool FindData(int serverNo, BYTE dataType, DATA** data);
+private:
 	bool PacketProc(DWORD64 sessionID, Jay::NetPacket* packet, WORD type);
 	bool PacketProc_Login(DWORD64 sessionID, Jay::NetPacket* packet);
 	bool PacketProc_DataUpdate(DWORD64 sessionID, Jay::NetPacket* packet);
 private:
 	MonitorServer* _monitor;
 	std::thread _dbWriteThread;
-	std::unordered_map<SESSION_ID, SERVER_NO> _serverMap;
+	std::thread _managementThread;
+	std::unordered_map<SESSION_ID, USER*> _userMap;
 	std::unordered_multimap<SERVER_NO, DATA*> _dataMap;
 	Jay::SRWLock _mapLock;
 	Jay::DBConnector _logdb;
-	Jay::LockFreeQueue<IDBJob*> _dbJobQ;
+	Jay::MessageQueue<IDBJob*> _dbJobQ;
 	HANDLE _hJobEvent;
 	HANDLE _hExitEvent;
 };

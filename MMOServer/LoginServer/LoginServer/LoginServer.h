@@ -1,7 +1,6 @@
 #pragma once
 #include "../../Lib/Network/include/NetServer.h"
 #include "../../Common/CommonProtocol.h"
-#include "../../Common/LockFreeQueue.h"
 #include "../../Common/Lock.h"
 #include "../../Common/DBConnector_TLS.h"
 #include <unordered_set>
@@ -31,10 +30,11 @@ private:
 	bool Initial();
 	void Release();
 	void ManagementThread();
-	void UpdateTPS();
 private:
+	void UpdateTPS();
 	void FetchWhiteIPList();
 	bool CheckWhiteIP(const wchar_t* ipaddress);
+private:
 	bool PacketProc(DWORD64 sessionID, Jay::NetPacket* packet, WORD type);
 	bool PacketProc_Login(DWORD64 sessionID, Jay::NetPacket* packet);
 private:

@@ -6,6 +6,7 @@
 #pragma comment(lib, "Winmm.lib")
 
 ChatServer g_Server;
+time_t g_StartTime;
 bool g_StopSignal = false;
 bool g_ControlMode = false;
 
@@ -59,42 +60,40 @@ bool Init()
 
 	Jay::Logger::SetLogLevel(ServerConfig::GetLogLevel());
 	Jay::Logger::SetLogPath(ServerConfig::GetLogPath());
+
+	g_StartTime = time(NULL);
 	return true;
 }
 
 void Monitor()
 {
 	tm stTime;
-	time_t timer;
-	timer = time(NULL);
-	localtime_s(&stTime, &timer);
+	localtime_s(&stTime, &g_StartTime);
 
 	wprintf_s(L"\
-[%d/%02d/%02d %02d:%02d:%02d]\n\
+StartTime: %d/%02d/%02d %02d:%02d:%02d\n\
 ------------------------------------\n\
 Packet Pool Capacity: %d\n\
 Packet Pool Use: %d\n\
 Session Count: %d\n\
 ------------------------------------\n\
-User Count: %d\n\
-User Pool Use: %d\n\
-Player Count: %d\n\
 Player Pool Use: %d\n\
+Player Count: %d\n\
+Player Login Count: %d\n\
 ------------------------------------\n\
 Total Accept: %lld\n\
 Accept TPS: %d\n\
 Recv TPS: %d\n\
 Send TPS: %d\n\
 ------------------------------------\n\
-\n\n\n\n\n\n\n\n\n\n\n\n\n"
+\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
 		, g_Server.GetCapacityPacketPool()
 		, g_Server.GetUsePacketPool()
 		, g_Server.GetSessionCount()
-		, g_Server.GetUserCount()
-		, g_Server.GetUseUserPool()
-		, g_Server.GetPlayerCount()
 		, g_Server.GetUsePlayerPool()
+		, g_Server.GetPlayerCount()
+		, g_Server.GetLoginPlayerCount()
 		, g_Server.GetTotalAcceptCount()
 		, g_Server.GetAcceptTPS()
 		, g_Server.GetRecvTPS()

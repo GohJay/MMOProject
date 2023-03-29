@@ -96,8 +96,7 @@ void MonitorClient::LoginProc()
 	NetPacket* packet = NetPacket::Alloc();
 
 	Packet::MakeMonitorLogin(packet, dfMONITOR_SERVER_NO_LOGIN);
-	if (!LanClient::SendPacket(packet))
-		_status = DISCONNECT;
+	LanClient::SendPacket(packet);
 
 	NetPacket::Free(packet);
 	_status = MONITORING;
@@ -107,7 +106,12 @@ void MonitorClient::MonitoringProc()
 	// 현재 시간 구하기
 	time_t timer = time(NULL);
 
+	// 리소스 값 갱신
+	_processUsage.Update();
+	_processerUsage.Update();
+
 	// 프로세스 사용률 갱신
+	Update(dfMONITOR_DATA_TYPE_LOGIN_SERVER_RUN, 1, timer);
 	Update(dfMONITOR_DATA_TYPE_LOGIN_SERVER_CPU, _processUsage.GetUseCPUTotalTime(), timer);
 	Update(dfMONITOR_DATA_TYPE_LOGIN_SERVER_MEM, _processUsage.GetUseMemoryMBytes(), timer);
 	Update(dfMONITOR_DATA_TYPE_LOGIN_SESSION, _login->GetSessionCount(), timer);
@@ -120,10 +124,6 @@ void MonitorClient::MonitoringProc()
 	Update(dfMONITOR_DATA_TYPE_MONITOR_NETWORK_RECV, _processerUsage.GetNetworkRecvKBytes(), timer);
 	Update(dfMONITOR_DATA_TYPE_MONITOR_NETWORK_SEND, _processerUsage.GetNetworkSendKBytes(), timer);
 	Update(dfMONITOR_DATA_TYPE_MONITOR_AVAILABLE_MEMORY, _processerUsage.GetFreeMemoryMBytes(), timer);
-
-	// 리소스 값 갱신
-	_processUsage.Update();
-	_processerUsage.Update();
 }
 void MonitorClient::Update(BYTE dataType, int dataValue, int timeStamp)
 {

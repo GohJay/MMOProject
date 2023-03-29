@@ -40,7 +40,7 @@ namespace Jay
 		ULARGE_INTEGER _sys_CPU_LastKernel;
 		int _numberOfProcessors;
 		HANDLE _hProcess;
-		WCHAR _processName[128];
+		WCHAR _processName[64];
 	};
 }
 

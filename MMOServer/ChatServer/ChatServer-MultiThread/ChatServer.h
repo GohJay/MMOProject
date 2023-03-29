@@ -1,7 +1,7 @@
 #pragma once
 #include "../../Lib/Network/include/NetServer.h"
 #include "../../Common/CommonProtocol.h"
-#include "../../Common/LockFreeQueue.h"
+#include "../../Common/LFQueue.h"
 #include "../../Common/LFObjectPool_TLS.h"
 #include "../../Common/Lock.h"
 #include "Define.h"
@@ -9,9 +9,9 @@
 #include <unordered_map>
 #include <list>
 #include <thread>
+#include <atomic>
 
 typedef DWORD64 SESSION_ID;
-typedef INT64 ACCOUNT_NO;
 
 class ChatServer : public Jay::NetServer
 {
@@ -21,9 +21,8 @@ public:
 public:
 	bool Start(const wchar_t* ipaddress, int port, int workerCreateCnt, int workerRunningCnt, WORD sessionMax, BYTE packetCode, BYTE packetKey, int timeoutSec = 0, bool nagle = true);
 	void Stop();
-	int GetUserCount();
 	int GetPlayerCount();
-	int GetUseUserPool();
+	int GetLoginPlayerCount();
 	int GetUsePlayerPool();
 private:
 	bool OnConnectionRequest(const wchar_t* ipaddress, int port) override;
@@ -35,12 +34,9 @@ private:
 	bool Initial();
 	void Release();
 private:
-	void NewUser(DWORD64 sessionID);
-	void DeleteUser(DWORD64 sessionID);
-	USER* FindUser(INT64 sessionID);
-	void NewPlayer(DWORD64 sessionID, INT64 accountNo);
-	void DeletePlayer(INT64 accountNo);
-	PLAYER* FindPlayer(INT64 accountNo);
+	void NewPlayer(DWORD64 sessionID);
+	void DeletePlayer(DWORD64 sessionID);
+	PLAYER* FindPlayer(DWORD64 sessionID);
 	bool IsMovablePlayer(int sectorX, int sectorY);
 	void AddPlayer_Sector(PLAYER* player, int sectorX, int sectorY);
 	void RemovePlayer_Sector(PLAYER* player);
@@ -56,11 +52,10 @@ private:
 	bool PacketProc_ChatSectorMove(DWORD64 sessionID, Jay::NetPacket* packet);
 	bool PacketProc_ChatMessage(DWORD64 sessionID, Jay::NetPacket* packet);
 private:
-	std::unordered_map<SESSION_ID, USER*> _userMap;
 	std::unordered_map<SESSION_ID, PLAYER*> _playerMap;
-	Jay::SRWLock _mapLock;
-	Jay::LFObjectPool_TLS<USER> _userPool;
 	Jay::LFObjectPool_TLS<PLAYER> _playerPool;
+	Jay::SRWLock _playerLock;
+	std::atomic<int> _loginPlayerCount;
 	std::list<PLAYER*> _sectorList[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
 	Jay::SRWLock _sectorLockTable[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
 };

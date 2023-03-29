@@ -84,7 +84,6 @@ void LoginServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
 }
 void LoginServer::OnClientLeave(DWORD64 sessionID)
 {
-
 }
 void LoginServer::OnError(int errcode, const wchar_t* funcname, int linenum, WPARAM wParam, LPARAM lParam)
 {
@@ -199,7 +198,7 @@ bool LoginServer::PacketProc_Login(DWORD64 sessionID, NetPacket* packet)
 {
 	//--------------------------------------------------------------------
 	// 로그인 메시지 처리
-	//--------------------------------------------------------------------	
+	//--------------------------------------------------------------------
 	INT64 accountNo;
 	char sessionKey[64];
 
@@ -236,10 +235,7 @@ WHERE a.`accountno` = %lld;", accountNo);
 		db_accountNo = res->getInt64(1);
 		MultiByteToWString(res->getString(2).c_str(), db_userID);
 		MultiByteToWString(res->getString(3).c_str(), db_userNick);
-		int size = sizeof(db_sessionKey);
-		if (size > res->getString(4).length())
-			size = res->getString(4).length();
-		memmove(db_sessionKey, res->getString(4).c_str(), size);
+		memmove(db_sessionKey, res->getString(4).c_str(), res->getString(4).length());
 		db_status = res->getInt(5);
 
 		status = dfLOGIN_STATUS_OK;

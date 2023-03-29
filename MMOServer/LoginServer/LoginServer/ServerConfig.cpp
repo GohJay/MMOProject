@@ -27,10 +27,10 @@ bool ServerConfig::LoadFile(const wchar_t* filename)
 	confParser.GetValue(L"CLIENT", L"IP", _client.ip);
 	confParser.GetValue(L"CLIENT", L"PORT", &_client.port);
 	confParser.GetValue(L"CLIENT", L"RECONNECT", (int*)&_client.reconnect);
-	confParser.GetValue(L"SERVICE", L"GAMESERVER_IP", _service.gameserver_ip);
-	confParser.GetValue(L"SERVICE", L"GAMESERVER_PORT", &_service.gameserver_port);
-	confParser.GetValue(L"SERVICE", L"CHATSERVER_IP", _service.chatserver_ip);
-	confParser.GetValue(L"SERVICE", L"CHATSERVER_PORT", &_service.chatserver_port);
+	confParser.GetValue(L"SERVICE", L"GAMESERVER_IP", _service.gameServerIP);
+	confParser.GetValue(L"SERVICE", L"GAMESERVER_PORT", &_service.gameServerPort);
+	confParser.GetValue(L"SERVICE", L"CHATSERVER_IP", _service.chatServerIP);
+	confParser.GetValue(L"SERVICE", L"CHATSERVER_PORT", &_service.chatServerPort);
 	confParser.GetValue(L"SYSTEM", L"LOG_LEVEL", &_system.logLevel);
 	confParser.GetValue(L"SYSTEM", L"LOG_PATH", _system.logPath);
 	confParser.GetValue(L"DATABASE", L"IP", _database.ip);
@@ -38,8 +38,8 @@ bool ServerConfig::LoadFile(const wchar_t* filename)
 	confParser.GetValue(L"DATABASE", L"USER", _database.user);
 	confParser.GetValue(L"DATABASE", L"PASSWORD", _database.passwd);
 	confParser.GetValue(L"DATABASE", L"SCHEMA", _database.schema);
-	confParser.GetValue(L"DATABASE", L"REDIS_IP", _database.redis_ip);
-	confParser.GetValue(L"DATABASE", L"REDIS_PORT", &_database.redis_port);
-	confParser.GetValue(L"DATABASE", L"REDIS_TIMEOUT_SEC", &_database.redis_timeout_sec);
+	confParser.GetValue(L"DATABASE", L"REDIS_IP", _database.redisIP);
+	confParser.GetValue(L"DATABASE", L"REDIS_PORT", &_database.redisPort);
+	confParser.GetValue(L"DATABASE", L"REDIS_TIMEOUT_SEC", &_database.redisTimeoutSec);
     return true;
 }

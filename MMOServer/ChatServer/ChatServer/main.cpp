@@ -8,6 +8,7 @@
 
 ChatServer g_ChatServer;
 MonitorClient g_MonitorClient(&g_ChatServer);
+time_t g_StartTime;
 bool g_StopSignal = false;
 bool g_ControlMode = false;
 
@@ -61,27 +62,26 @@ bool Init()
 
 	Jay::Logger::SetLogLevel(ServerConfig::GetLogLevel());
 	Jay::Logger::SetLogPath(ServerConfig::GetLogPath());
+
+	g_StartTime = time(NULL);
 	return true;
 }
 
 void Monitor()
 {
 	tm stTime;
-	time_t timer;
-	timer = time(NULL);
-	localtime_s(&stTime, &timer);
+	localtime_s(&stTime, &g_StartTime);
 
 	wprintf_s(L"\
-[%d/%02d/%02d %02d:%02d:%02d]\n\
+StartTime: %d/%02d/%02d %02d:%02d:%02d\n\
 ------------------------------------\n\
 Packet Pool Capacity: %d\n\
 Packet Pool Use: %d\n\
 Session Count: %d\n\
 ------------------------------------\n\
-User Count: %d\n\
-User Pool Use: %d\n\
-Player Count: %d\n\
 Player Pool Use: %d\n\
+Player Count: %d\n\
+Player Login Count: %d\n\
 ------------------------------------\n\
 Total Accept: %lld\n\
 Accept TPS: %d\n\
@@ -92,15 +92,14 @@ Update TPS: %d\n\
 Job Queue Count: %d\n\
 Job Pool Use: %d\n\
 ------------------------------------\n\
-\n\n\n\n\n\n\n\n\n"
+\n\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
 		, g_ChatServer.GetCapacityPacketPool()
 		, g_ChatServer.GetUsePacketPool()
 		, g_ChatServer.GetSessionCount()
-		, g_ChatServer.GetUserCount()
-		, g_ChatServer.GetUseUserPool()
-		, g_ChatServer.GetPlayerCount()
 		, g_ChatServer.GetUsePlayerPool()
+		, g_ChatServer.GetPlayerCount()
+		, g_ChatServer.GetLoginPlayerCount()
 		, g_ChatServer.GetTotalAcceptCount()
 		, g_ChatServer.GetAcceptTPS()
 		, g_ChatServer.GetRecvTPS()
