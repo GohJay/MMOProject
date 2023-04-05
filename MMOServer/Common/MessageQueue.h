@@ -56,7 +56,7 @@ namespace Jay
 	private:
 		std::queue<T>* _mainMessageQ;
 		std::queue<T>* _subMessageQ;
-		SpinLock _messageLock;
+		SRWLock _messageLock;
 	};
 }
 

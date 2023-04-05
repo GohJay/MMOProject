@@ -28,6 +28,12 @@
     <Filter Include="Lib\TextParser">
       <UniqueIdentifier>{7740d57d-0776-4880-86b8-84f9588e82bf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Object">
+      <UniqueIdentifier>{21c49861-9b43-4336-8568-d33ec9c654ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DBJob">
+      <UniqueIdentifier>{22908787-6687-43b8-a1d6-c358b0554f3a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Define.h">
@@ -84,7 +90,7 @@
     <ClInclude Include="..\..\Lib\Network\include\NetContent.h">
       <Filter>Lib\Network</Filter>
     </ClInclude>
-    <ClInclude Include="MainServer.h">
+    <ClInclude Include="MMOServer.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="AuthServer.h">
@@ -92,6 +98,57 @@
     </ClInclude>
     <ClInclude Include="GameServer.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\StringUtil.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseObject.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerObject.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="MonsterObject.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectManager.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\DBConnector.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\MathUtil.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\MessageQueue.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="GameData.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CristalObject.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="IDBJob.h">
+      <Filter>DBJob</Filter>
+    </ClInclude>
+    <ClInclude Include="DBPlayerLogin.h">
+      <Filter>DBJob</Filter>
+    </ClInclude>
+    <ClInclude Include="DBPlayerLogout.h">
+      <Filter>DBJob</Filter>
+    </ClInclude>
+    <ClInclude Include="DBPlayerDie.h">
+      <Filter>DBJob</Filter>
+    </ClInclude>
+    <ClInclude Include="DBPlayerRestart.h">
+      <Filter>DBJob</Filter>
+    </ClInclude>
+    <ClInclude Include="DBGetCristal.h">
+      <Filter>DBJob</Filter>
+    </ClInclude>
+    <ClInclude Include="DBRecoverHP.h">
+      <Filter>DBJob</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -125,7 +182,7 @@
     <ClCompile Include="..\..\Common\ProcessUsage.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="MainServer.cpp">
+    <ClCompile Include="MMOServer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="AuthServer.cpp">
@@ -133,6 +190,39 @@
     </ClCompile>
     <ClCompile Include="GameServer.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Common\DBConnector.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerObject.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
+    <ClCompile Include="MonsterObject.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
+    <ClCompile Include="BaseObject.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
+    <ClCompile Include="CristalObject.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
+    <ClCompile Include="DBGetCristal.cpp">
+      <Filter>DBJob</Filter>
+    </ClCompile>
+    <ClCompile Include="DBPlayerDie.cpp">
+      <Filter>DBJob</Filter>
+    </ClCompile>
+    <ClCompile Include="DBPlayerLogin.cpp">
+      <Filter>DBJob</Filter>
+    </ClCompile>
+    <ClCompile Include="DBPlayerLogout.cpp">
+      <Filter>DBJob</Filter>
+    </ClCompile>
+    <ClCompile Include="DBPlayerRestart.cpp">
+      <Filter>DBJob</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,41 @@
+#pragma once
+#include <Windows.h>
+
+enum ACCOUNT_STATUS
+{
+	ACCOUNT_STATUS_LOGOUT = 0,
+	ACCOUNT_STATUS_LOGIN_ING,
+	ACCOUNT_STATUS_LOGIN_DONE,
+	ACCOUNT_STATUS_GAME_PLAY,
+};
+
+enum LOG_TYPE
+{
+	GAMEDB_LOG_TYPE_LOGIN = 1,
+	GAMEDB_LOG_TYPE_LOGOUT,
+	GAMEDB_LOG_TYPE_PLAYER_DIE,
+	GAMEDB_LOG_TYPE_PLAYER_CREATE,
+	GAMEDB_LOG_TYPE_PLAYER_RESTART,
+	GAMEDB_LOG_TYPE_PICK_CRISTAL,
+	GAMEDB_LOG_TYPE_RECOVER_HP,
+};
+
+struct DATA_CRISTAL
+{
+	INT64 type;
+	int amount;
+};
+
+struct DATA_MONSTER
+{
+	INT64 type;
+	int hp;
+	int damage;
+};
+
+struct DATA_PLAYER
+{
+	int damage;
+	int hp;
+	int recovery_hp;
+};

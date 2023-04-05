@@ -19,8 +19,16 @@ public:
 	static bool IsMonitorReconnect() { return _client.reconnect; }
 	static int GetLogLevel() { return _system.logLevel; }
 	static const wchar_t* GetLogPath() { return _system.logPath; }
+	static const wchar_t* GetDatabaseIP() { return _database.ip; }
+	static int GetDatabasePort() { return _database.port; }
+	static const wchar_t* GetDatabaseUser() { return _database.user; }
+	static const wchar_t* GetDatabasePassword() { return _database.passwd; }
+	static const wchar_t* GetDatabaseSchema() { return _database.schema; }
+	static const wchar_t* GetRedisIP() { return _database.redis_ip; }
+	static int GetRedisPort() { return _database.redis_port; }
 private:
 	static SERVER _server;
 	static CLIENT _client;
 	static SYSTEM _system;
+	static DATABASE _database;
 };

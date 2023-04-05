@@ -253,7 +253,8 @@ WHERE a.`accountno` = %lld;", accountNo);
 	{
 		std::string key(std::to_string(accountNo));
 		std::string token(sessionKey, sizeof(sessionKey));
-		_memorydb.setex(key, ServerConfig::GetRedisTimeoutSec(), token);
+		_memorydb.setex(key + "_chat", ServerConfig::GetRedisTimeoutSec(), token);
+		_memorydb.setex(key + "_game", ServerConfig::GetRedisTimeoutSec(), token);
 		_memorydb.sync_commit();
 	}
 

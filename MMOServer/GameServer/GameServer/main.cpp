@@ -1,14 +1,14 @@
 ﻿#include "stdafx.h"
 #include "../../Common/CrashDump.h"
 #include "../../Common/Logger.h"
-#include "MainServer.h"
+#include "MMOServer.h"
 #include "AuthServer.h"
 #include "GameServer.h"
 #include "MonitorClient.h"
 #include "ServerConfig.h"
 #pragma comment(lib, "Winmm.lib")
 
-MainServer g_MainServer;
+MMOServer g_MainServer;
 AuthServer g_AuthServer(&g_MainServer);
 GameServer g_GameServer(&g_MainServer);
 MonitorClient g_MonitorClient(&g_MainServer, &g_AuthServer, &g_GameServer);

@@ -451,7 +451,7 @@ void ChatServer::AuthProc(DWORD64 sessionID, __int64 accountNo, char* token)
 	//--------------------------------------------------------------------
 	// Redis 에서 세션 토큰 얻기 (Key: AccountNo, Value: SessionKey)
 	//--------------------------------------------------------------------
-	std::string key = std::to_string(accountNo);
+	std::string key = std::to_string(accountNo) + "_chat";
 	std::future<cpp_redis::reply> future = _memorydb.get(key);
 	_memorydb.sync_commit();
 

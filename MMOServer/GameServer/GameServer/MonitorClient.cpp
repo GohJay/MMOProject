@@ -10,7 +10,7 @@
 
 using namespace Jay;
 
-MonitorClient::MonitorClient(MainServer* main, AuthServer* auth, GameServer* game) : _main(main), _auth(auth), _game(game), _status(CONNECT)
+MonitorClient::MonitorClient(MMOServer* main, AuthServer* auth, GameServer* game) : _main(main), _auth(auth), _game(game), _status(CONNECT)
 {
 	_hExitEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 	_monitoringThread = std::thread(&MonitorClient::MonitoringThread, this);

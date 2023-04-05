@@ -6,6 +6,7 @@
 SERVER ServerConfig::_server;
 CLIENT ServerConfig::_client;
 SYSTEM ServerConfig::_system;
+DATABASE ServerConfig::_database;
 
 bool ServerConfig::LoadFile(const wchar_t* filename)
 {
@@ -27,5 +28,12 @@ bool ServerConfig::LoadFile(const wchar_t* filename)
 	confParser.GetValue(L"CLIENT", L"RECONNECT", (int*)&_client.reconnect);
 	confParser.GetValue(L"SYSTEM", L"LOG_LEVEL", &_system.logLevel);
 	confParser.GetValue(L"SYSTEM", L"LOG_PATH", _system.logPath);
+	confParser.GetValue(L"DATABASE", L"IP", _database.ip);
+	confParser.GetValue(L"DATABASE", L"PORT", &_database.port);
+	confParser.GetValue(L"DATABASE", L"USER", _database.user);
+	confParser.GetValue(L"DATABASE", L"PASSWORD", _database.passwd);
+	confParser.GetValue(L"DATABASE", L"SCHEMA", _database.schema);
+	confParser.GetValue(L"DATABASE", L"REDIS_IP", _database.redis_ip);
+	confParser.GetValue(L"DATABASE", L"REDIS_PORT", &_database.redis_port);
     return true;
 }
