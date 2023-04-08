@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "AuthServer.h"
+#include "AuthContent.h"
 #include "ServerConfig.h"
 #include "Packet.h"
 #include "ObjectManager.h"
@@ -14,46 +14,46 @@
 
 using namespace Jay;
 
-AuthServer::AuthServer(MMOServer* subject) : _subject(subject), _stopSignal(false)
+AuthContent::AuthContent(GameServer* server) : _server(server), _stopSignal(false)
 {
 	//--------------------------------------------------------------------
 	// NetworkLib 에 인증 스레드 연결
 	//--------------------------------------------------------------------	
-	_subject->AttachContent(this, CONTENT_ID_AUTH, FRAME_INTERVAL_AUTH, true);
+	_server->AttachContent(this, CONTENT_ID_AUTH, FRAME_INTERVAL_AUTH, true);
 }
-AuthServer::~AuthServer()
+AuthContent::~AuthContent()
 {
 }
-int AuthServer::GetPlayerCount()
+int AuthContent::GetPlayerCount()
 {
 	return _playerMap.size();
 }
-int AuthServer::GetFPS()
+int AuthContent::GetFPS()
 {
 	return _oldFPS;
 }
-void AuthServer::OnStart()
+void AuthContent::OnStart()
 {
 	//--------------------------------------------------------------------
 	// Initial
 	//--------------------------------------------------------------------
 	Initial();
 }
-void AuthServer::OnStop()
+void AuthContent::OnStop()
 {
 	//--------------------------------------------------------------------
 	// Release
 	//--------------------------------------------------------------------
 	Release();
 }
-void AuthServer::OnUpdate()
+void AuthContent::OnUpdate()
 {
 	_curFPS++;
 }
-void AuthServer::OnClientJoin(DWORD64 sessionID)
+void AuthContent::OnClientJoin(DWORD64 sessionID)
 {
 }
-void AuthServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
+void AuthContent::OnRecv(DWORD64 sessionID, NetPacket* packet)
 {
 	//--------------------------------------------------------------------
 	// 수신 받은 메시지 처리
@@ -62,25 +62,25 @@ void AuthServer::OnRecv(DWORD64 sessionID, NetPacket* packet)
 	(*packet) >> type;
 
 	if (!PacketProc(sessionID, packet, type))
-		_subject->Disconnect(sessionID);
+		_server->Disconnect(sessionID);
 }
-void AuthServer::OnClientLeave(DWORD64 sessionID)
+void AuthContent::OnClientLeave(DWORD64 sessionID)
 {
 	auto iter = _playerMap.find(sessionID);
 	PlayerObject* player = iter->second;
 	_playerMap.erase(iter);
 	PlayerObject::Free(player);
 }
-void AuthServer::OnContentEnter(DWORD64 sessionID, WPARAM wParam, LPARAM lParam)
+void AuthContent::OnContentEnter(DWORD64 sessionID, WPARAM wParam, LPARAM lParam)
 {
 	PlayerObject* player = PlayerObject::Alloc();
 	_playerMap.insert({ sessionID, player });
 }
-void AuthServer::OnContentExit(DWORD64 sessionID)
+void AuthContent::OnContentExit(DWORD64 sessionID)
 {
 	_playerMap.erase(sessionID);
 }
-bool AuthServer::Initial()
+bool AuthContent::Initial()
 {
 	//--------------------------------------------------------------------
 	// Redis Connect
@@ -101,10 +101,10 @@ bool AuthServer::Initial()
 	//--------------------------------------------------------------------
 	// Thread Begin
 	//--------------------------------------------------------------------
-	_managementThread = std::thread(&AuthServer::ManagementThread, this);
+	_managementThread = std::thread(&AuthContent::ManagementThread, this);
 	return true;
 }
-void AuthServer::Release()
+void AuthContent::Release()
 {
 	//--------------------------------------------------------------------
 	// Thread End
@@ -122,7 +122,7 @@ void AuthServer::Release()
 	//--------------------------------------------------------------------
 	_memorydb.disconnect();
 }
-void AuthServer::ManagementThread()
+void AuthContent::ManagementThread()
 {
 	while (!_stopSignal)
 	{
@@ -130,11 +130,11 @@ void AuthServer::ManagementThread()
 		UpdateFPS();
 	}
 }
-void AuthServer::UpdateFPS()
+void AuthContent::UpdateFPS()
 {
 	_oldFPS.exchange(_curFPS.exchange(0));
 }
-bool AuthServer::ValdateSessionToken(std::string& key, std::string& token)
+bool AuthContent::ValdateSessionToken(std::string& key, std::string& token)
 {
 	std::future<cpp_redis::reply> future = _memorydb.get(key);
 	_memorydb.sync_commit();
@@ -158,7 +158,7 @@ bool AuthServer::ValdateSessionToken(std::string& key, std::string& token)
 
 	return false;
 }
-bool AuthServer::GetExistPlayerInfo(PlayerObject* player)
+bool AuthContent::GetExistPlayerInfo(PlayerObject* player)
 {
 	bool ret = false;
 
@@ -199,14 +199,14 @@ bool AuthServer::GetExistPlayerInfo(PlayerObject* player)
 			MultiByteToWString(res2->getString(1).c_str(), nickname);
 		_gamedb.ClearQuery(res2);
 
-		player->Initial(&nickname[0], characterType, posX, posY, rotation, cristal, hp, exp, level, die);
+		player->Init(&nickname[0], characterType, posX, posY, rotation, cristal, hp, exp, level, die);
 		ret = true;
 	}
 	_gamedb.ClearQuery(res1);
 
 	return ret;
 }
-void AuthServer::SetDefaultPlayerInfo(PlayerObject* player, BYTE characterType)
+void AuthContent::SetDefaultPlayerInfo(PlayerObject* player, BYTE characterType)
 {
 	std::wstring nickname;
 	int tileX;
@@ -252,16 +252,16 @@ void AuthServer::SetDefaultPlayerInfo(PlayerObject* player, BYTE characterType)
 		, level
 		, FALSE);
 
-	player->Initial(&nickname[0], characterType, tileX / 2, tileY / 2, rotation, cristal, hp, exp, level, false);
+	player->Init(&nickname[0], characterType, tileX / 2, tileY / 2, rotation, cristal, hp, exp, level, false);
 }
-void AuthServer::MoveGameThread(PlayerObject* player)
+void AuthContent::MoveGameThread(PlayerObject* player)
 {
 	//--------------------------------------------------------------------
 	// 해당 플레이어를 게임 스레드로 이동
 	//--------------------------------------------------------------------
-	_subject->MoveContent(player->GetSessionID(), CONTENT_ID_GAME, (WPARAM)player, NULL);
+	_server->MoveContent(player->GetSessionID(), CONTENT_ID_GAME, (WPARAM)player, NULL);
 }
-bool AuthServer::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
+bool AuthContent::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
 {
 	//--------------------------------------------------------------------
 	// 수신 메시지 타입에 따른 분기 처리
@@ -279,7 +279,7 @@ bool AuthServer::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
 	}
 	return false;
 }
-bool AuthServer::PacketProc_GameLogin(DWORD64 sessionID, NetPacket* packet)
+bool AuthContent::PacketProc_GameLogin(DWORD64 sessionID, NetPacket* packet)
 {
 	//--------------------------------------------------------------------
 	// 로그인 메시지 처리
@@ -327,12 +327,12 @@ bool AuthServer::PacketProc_GameLogin(DWORD64 sessionID, NetPacket* packet)
 	NetPacket* resPacket = NetPacket::Alloc();
 
 	Packet::MakeGameLogin(resPacket, status, accountNo);
-	_subject->SendPacket(sessionID, resPacket);
+	_server->SendPacket(sessionID, resPacket);
 
 	NetPacket::Free(resPacket);
 	return true;
 }
-bool AuthServer::PacketProc_CharacterSelect(DWORD64 sessionID, Jay::NetPacket* packet)
+bool AuthContent::PacketProc_CharacterSelect(DWORD64 sessionID, Jay::NetPacket* packet)
 {
 	BYTE characterType;
 	(*packet) >> characterType;
@@ -367,7 +367,7 @@ bool AuthServer::PacketProc_CharacterSelect(DWORD64 sessionID, Jay::NetPacket* p
 	NetPacket* resPacket = NetPacket::Alloc();
 
 	Packet::MakeCharacterSelect(resPacket, status);
-	_subject->SendPacket(sessionID, resPacket);
+	_server->SendPacket(sessionID, resPacket);
 
 	NetPacket::Free(resPacket);
 

@@ -1,7 +1,7 @@
 #pragma once
-#include "MMOServer.h"
-#include "AuthServer.h"
 #include "GameServer.h"
+#include "AuthContent.h"
+#include "GameContent.h"
 #include "../../Common/ProcessUsage.h"
 #include "../../Common/ProcesserUsage.h"
 #include "../../Lib/Network/include/LanClient.h"
@@ -19,7 +19,7 @@ enum MONITOR_STATUS
 class MonitorClient : Jay::LanClient
 {
 public:
-	MonitorClient(MMOServer* main, AuthServer* auth, GameServer* game);
+	MonitorClient(GameServer* server, AuthContent* auth, GameContent* game);
 	~MonitorClient();
 protected:
 	void OnEnterJoinServer() override;
@@ -34,9 +34,9 @@ public:
 	void MonitoringProc();
 	void Update(BYTE dataType, int dataValue, int timeStamp);
 private:
-	MMOServer* _main;
-	AuthServer* _auth;
-	GameServer* _game;
+	GameServer* _server;
+	AuthContent* _auth;
+	GameContent* _game;
 	Jay::ProcessUsage _processUsage;
 	Jay::ProcesserUsage _processerUsage;
 	std::thread _monitoringThread;

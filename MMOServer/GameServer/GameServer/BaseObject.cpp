@@ -2,12 +2,20 @@
 #include "BaseObject.h"
 #include "ObjectManager.h"
 
-BaseObject::BaseObject(WORD type) : _type(type)
+BaseObject::BaseObject(WORD type) : _type(type), _deleted(false)
 {
 	_objectID = ObjectManager::GetInstance()->NextObjectID();
 }
 BaseObject::~BaseObject()
 {
+}
+void BaseObject::DeleteObject()
+{
+	_deleted = true;
+}
+bool BaseObject::IsDeleted()
+{
+	return _deleted;
 }
 INT64 BaseObject::GetID()
 {

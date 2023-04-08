@@ -22,9 +22,8 @@ public:
 public:
 	virtual bool Update() override;
 	virtual void Dispose() override;
-	void Initial(WCHAR* nickname, BYTE type, float posX, float posY, USHORT rotation, int cristal, int hp, INT64 exp, USHORT level, bool die);
-	void Release();
-	void SetGameServer(GameServer* server);
+	void Init(WCHAR* nickname, BYTE type, float posX, float posY, USHORT rotation, int cristal, int hp, INT64 exp, USHORT level, bool die);
+	void GameSetup(GameContent* game);
 	INT64 GetAccountNo();
 	INT64 GetSessionID();
 	BYTE GetCharacterType();
@@ -52,9 +51,10 @@ public:
 	void Sit();
 	void Damage(int damage);
 private:
-	bool FindForwardDirectionObject(BaseObject** object, OBJECT_TYPE type);
+	void RecoverHP();
+	bool FindObjectInFront(OBJECT_TYPE type, BaseObject** object);
 private:
-	bool _release;
+	bool _login;
 	INT64 _sessionID;
 	INT64 _accountNo;
 	BYTE _characterType;
@@ -69,7 +69,11 @@ private:
 	BYTE _vKey;
 	BYTE _hKey;
 	int _power;
-	bool _login;
-	GameServer* _server;
+	int _oldHP;
+	int _maxHP;
+	int _recoveryHP;
+	DWORD _lastRecoverHPTime;
+	DWORD _sitStartTime;
+	GameContent* _game;
 	static Jay::LFObjectPool_TLS<PlayerObject> _pool;
 };

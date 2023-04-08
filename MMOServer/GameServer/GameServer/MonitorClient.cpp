@@ -10,7 +10,7 @@
 
 using namespace Jay;
 
-MonitorClient::MonitorClient(MMOServer* main, AuthServer* auth, GameServer* game) : _main(main), _auth(auth), _game(game), _status(CONNECT)
+MonitorClient::MonitorClient(GameServer* server, AuthContent* auth, GameContent* game) : _server(server), _auth(auth), _game(game), _status(CONNECT)
 {
 	_hExitEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 	_monitoringThread = std::thread(&MonitorClient::MonitoringThread, this);
@@ -115,15 +115,15 @@ void MonitorClient::MonitoringProc()
 	Update(dfMONITOR_DATA_TYPE_GAME_SERVER_RUN, 1, timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_SERVER_CPU, _processUsage.GetUseCPUTotalTime(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_SERVER_MEM, _processUsage.GetUseMemoryMBytes(), timer);
-	Update(dfMONITOR_DATA_TYPE_GAME_SESSION, _main->GetSessionCount(), timer);
+	Update(dfMONITOR_DATA_TYPE_GAME_SESSION, _server->GetSessionCount(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_AUTH_PLAYER, _auth->GetPlayerCount(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_GAME_PLAYER, _game->GetPlayerCount(), timer);
-	Update(dfMONITOR_DATA_TYPE_GAME_ACCEPT_TPS, _main->GetAcceptTPS(), timer);
-	Update(dfMONITOR_DATA_TYPE_GAME_PACKET_RECV_TPS, _main->GetRecvTPS(), timer);
-	Update(dfMONITOR_DATA_TYPE_GAME_PACKET_SEND_TPS, _main->GetSendTPS(), timer);
+	Update(dfMONITOR_DATA_TYPE_GAME_ACCEPT_TPS, _server->GetAcceptTPS(), timer);
+	Update(dfMONITOR_DATA_TYPE_GAME_PACKET_RECV_TPS, _server->GetRecvTPS(), timer);
+	Update(dfMONITOR_DATA_TYPE_GAME_PACKET_SEND_TPS, _server->GetSendTPS(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_AUTH_THREAD_FPS, _auth->GetFPS(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_GAME_THREAD_FPS, _game->GetFPS(), timer);
-	Update(dfMONITOR_DATA_TYPE_GAME_PACKET_POOL, _main->GetUsePacketPool(), timer);
+	Update(dfMONITOR_DATA_TYPE_GAME_PACKET_POOL, _server->GetUsePacketPool(), timer);
 
 	// 프로세서 사용률 갱신
 	Update(dfMONITOR_DATA_TYPE_MONITOR_CPU_TOTAL, _processerUsage.GetUseCPUTotalTime(), timer);

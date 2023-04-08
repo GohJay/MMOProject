@@ -90,13 +90,13 @@
     <ClInclude Include="..\..\Lib\Network\include\NetContent.h">
       <Filter>Lib\Network</Filter>
     </ClInclude>
-    <ClInclude Include="MMOServer.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="AuthServer.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="GameServer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="AuthContent.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="GameContent.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Common\StringUtil.h">
@@ -109,9 +109,6 @@
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="MonsterObject.h">
-      <Filter>Object</Filter>
-    </ClInclude>
-    <ClInclude Include="ObjectManager.h">
       <Filter>Object</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Common\DBConnector.h">
@@ -150,6 +147,12 @@
     <ClInclude Include="DBRecoverHP.h">
       <Filter>DBJob</Filter>
     </ClInclude>
+    <ClInclude Include="Sector.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectManager.h">
+      <Filter>소스 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -182,16 +185,13 @@
     <ClCompile Include="..\..\Common\ProcessUsage.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="MMOServer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="AuthServer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="GameServer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="ObjectManager.cpp">
+    <ClCompile Include="AuthContent.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="GameContent.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Common\DBConnector.cpp">
@@ -223,6 +223,12 @@
     </ClCompile>
     <ClCompile Include="DBPlayerRestart.cpp">
       <Filter>DBJob</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DBRecoverHP.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -10,6 +10,7 @@ public:
 public:
 	virtual void Exec() override;
 private:
+	void UpdateCharacter();
 	void InsertLog();
 	void InsertLogData();
 	void CreateLogTable();

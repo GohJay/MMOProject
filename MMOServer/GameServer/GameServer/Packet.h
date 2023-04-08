@@ -22,7 +22,7 @@ public:
 	static void MakePickCristal(Jay::NetPacket* packet, INT64 clientID);
 	static void MakeSitCharacter(Jay::NetPacket* packet, INT64 clientID);
 	static void MakeGetCristal(Jay::NetPacket* packet, INT64 clientID, INT64 cristalClientID, int amountCristal);
-	static void MakeCorrectHP(Jay::NetPacket* packet, int hp);
+	static void MakeSyncHP(Jay::NetPacket* packet, int hp);
 	static void MakeCharacterDie(Jay::NetPacket* packet, INT64 clientID, int minusCristal);
 	static void MakeRestart(Jay::NetPacket* packet);
 	static void MakeGameEcho(Jay::NetPacket* packet, INT64 accountNo, LONGLONG sendTick);

@@ -6,11 +6,11 @@
 
 namespace Jay
 {
-	inline double RadianToDegree(double radian)
+	inline float RadianToDegree(float radian)
 	{
 		return (radian * 180) / PI;
 	}
-	inline double DegreeToRadian(double degree)
+	inline float DegreeToRadian(float degree)
 	{
 		return (degree * PI) / 180;
 	}

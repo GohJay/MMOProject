@@ -5,7 +5,7 @@
 class DBPlayerLogout : public IDBJob
 {
 public:
-	DBPlayerLogout(Jay::DBConnector* db, INT64 accountno, float posX, float posY, int tileX, int tileY, int rotation, int hp, INT64 exp, int die);
+	DBPlayerLogout(Jay::DBConnector* db, INT64 accountno, float posX, float posY, int tileX, int tileY, int rotation, int hp, INT64 exp);
 	~DBPlayerLogout();
 public:
 	virtual void Exec() override;

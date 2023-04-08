@@ -1,25 +1,17 @@
 #pragma once
+#include "Sector.h"
 
 typedef __int64 OBJECT_ID;
-class GameServer;
+class GameContent;
+class PlayerObject;
+class MonsterObject;
+class CristalObject;
 
 enum OBJECT_TYPE
 {
 	PLAYER = 0,
 	MONSTER,
 	CRISTAL,
-};
-
-struct SECTOR
-{
-	int x;
-	int y;
-};
-
-struct SECTOR_AROUND
-{
-	int count;
-	SECTOR around[9];
 };
 
 class BaseObject
@@ -31,6 +23,8 @@ public:
 	virtual bool Update() = 0;
 	virtual void Dispose() = 0;
 public:
+	void DeleteObject();
+	bool IsDeleted();
 	INT64 GetID();
 	WORD GetType();
 	float GetPosX();
@@ -42,6 +36,7 @@ public:
 	int GetCurSectorX();
 	int GetCurSectorY();
 protected:
+	bool _deleted;
 	INT64 _objectID;
 	WORD _type;
 	float _posX;

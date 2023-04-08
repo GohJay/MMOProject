@@ -19,34 +19,41 @@ public:
 	MonsterObject();
 	virtual ~MonsterObject() override;
 public:
-	static MonsterObject* Alloc(GameServer* server);
+	static MonsterObject* Alloc(GameContent* game);
 	static void Free(MonsterObject* monster);
 public:
 	virtual bool Update() override;
 	virtual void Dispose() override;
-	void Initial(BYTE type, WORD spawnZone);
-	void Release();
+	void Init(BYTE type, WORD spawnZone);
 	BYTE GetMonsterType();
 	USHORT GetRotation();
 	int GetHP();
 	bool IsDie();
-	void Respawn();
 	bool UpdateTile();
 	bool UpdateSector();
-	void Move(float targetX, float targetY);
-	void Damage(int damage);
+	void Respawn();
+	void Move();
+	void Attack();
+	void Damage(PlayerObject* attackPlayer, int damage);
 private:
-	bool _release;
+	bool IsInMonsterZone(int tileX, int tileY);
+	bool IsSightInRange(int tileX, int tileY);
+	bool IsAttackInRange();
+	bool IsTargetVisibleAndInRange();
+private:
 	BYTE _monsterType;
 	WORD _spawnZone;
 	USHORT _rotation;
-	DWORD _lastDeadTime;
-	int _hp;
 	bool _die;
 	int _power;
-	float _radian;
-	float _targetX;
-	float _targetY;
-	GameServer* _server;
+	int _hp;
+	int _maxHP;
+	float _scala;
+	DWORD _lastDeadTime;
+	DWORD _lastMoveTime;
+	DWORD _lastAttackTime;
+	INT64 _targetPlayerID;
+	PlayerObject* _targetPlayer;
+	GameContent* _game;
 	static Jay::LFObjectPool_TLS<MonsterObject> _pool;
 };

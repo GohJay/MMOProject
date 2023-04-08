@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "CristalObject.h"
 #include "ObjectManager.h"
-#include "GameServer.h"
+#include "GameContent.h"
 #include "Packet.h"
 #include "../../Lib/Network/include/NetPacket.h"
 
@@ -9,16 +9,16 @@ using namespace Jay;
 
 LFObjectPool_TLS<CristalObject> CristalObject::_pool(0, true);
 
-CristalObject::CristalObject() : BaseObject(CRISTAL), _release(false)
+CristalObject::CristalObject() : BaseObject(CRISTAL)
 {
 }
 CristalObject::~CristalObject()
 {
 }
-CristalObject* CristalObject::Alloc(GameServer* server)
+CristalObject* CristalObject::Alloc(GameContent* game)
 {
 	CristalObject* cristal = _pool.Alloc();
-	cristal->_server = server;
+	cristal->_game = game;
 	return cristal;
 }
 void CristalObject::Free(CristalObject* cristal)
@@ -27,7 +27,7 @@ void CristalObject::Free(CristalObject* cristal)
 }
 bool CristalObject::Update()
 {
-	if (_release)
+	if (IsDeleted())
 		return false;
 
 	if (CheckExpirationTime())
@@ -39,7 +39,7 @@ void CristalObject::Dispose()
 {
 	CristalObject::Free(this);
 }
-void CristalObject::Initial(BYTE type, float posX, float posY)
+void CristalObject::Init(BYTE type, float posX, float posY)
 {
 	_cristalType = type;
 	_posX = posX;
@@ -49,14 +49,17 @@ void CristalObject::Initial(BYTE type, float posX, float posY)
 	_curSector.x = _tileX / dfSECTOR_SIZE_X;
 	_curSector.y = _tileY / dfSECTOR_SIZE_Y;
 	_creationTime = timeGetTime();
-}
-void CristalObject::Release()
-{
-	_release = true;
+
+	DATA_CRISTAL* dataCristal = _game->GetDataCristal(_cristalType);
+	_amount = dataCristal->amount;
 }
 BYTE CristalObject::GetCristalType()
 {
 	return _cristalType;
+}
+int CristalObject::GetAmount()
+{
+	return _amount;
 }
 bool CristalObject::CheckExpirationTime()
 {
@@ -66,7 +69,7 @@ bool CristalObject::CheckExpirationTime()
 	DWORD currentTime = timeGetTime();
 	if (currentTime - _creationTime > dfCRISTAL_TIME_LIMIT)
 	{
-		_server->DeleteCristal(this);
+		_game->DeleteCristal(this);
 		return true;
 	}
 	return false;

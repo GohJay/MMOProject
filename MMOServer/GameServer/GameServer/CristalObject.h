@@ -8,20 +8,20 @@ public:
 	CristalObject();
 	virtual ~CristalObject() override;
 public:
-	static CristalObject* Alloc(GameServer* server);
+	static CristalObject* Alloc(GameContent* game);
 	static void Free(CristalObject* cristal);
 public:
 	virtual bool Update() override;
 	virtual void Dispose() override;
-	void Initial(BYTE type, float posX, float posY);
-	void Release();
+	void Init(BYTE type, float posX, float posY);
 	BYTE GetCristalType();
+	int GetAmount();
 private:
 	bool CheckExpirationTime();
 private:
-	bool _release;
 	BYTE _cristalType;
 	DWORD _creationTime;
-	GameServer* _server;
+	int _amount;
+	GameContent* _game;
 	static Jay::LFObjectPool_TLS<CristalObject> _pool;
 };

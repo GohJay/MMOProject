@@ -11,7 +11,16 @@ DBPlayerRestart::~DBPlayerRestart()
 }
 void DBPlayerRestart::Exec()
 {
+	_db->Execute(L"START TRANSACTION;");
+
+	UpdateCharacter();
 	InsertLog();
+
+	_db->Execute(L"COMMIT;");
+}
+void DBPlayerRestart::UpdateCharacter()
+{
+	_db->ExecuteUpdate(L"UPDATE gamedb.character SET die = 0 WHERE accountno = %lld;", _accountno);
 }
 void DBPlayerRestart::InsertLog()
 {

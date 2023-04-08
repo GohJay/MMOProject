@@ -25,10 +25,10 @@ void DBPlayerDie::UpdateCharacter()
 	if (res->next())
 	{
 		_totalCristal = res->getInt(1);
-		_totalCristal += _minusCristal;
+		_totalCristal -= _minusCristal;
 	}
 
-	_db->ExecuteUpdate(L"UPDATE gamedb.character SET cristal = %d WHERE accountno = %lld;", _totalCristal, _accountno);
+	_db->ExecuteUpdate(L"UPDATE gamedb.character SET cristal = %d, die = 1 WHERE accountno = %lld;", _totalCristal, _accountno);
 }
 void DBPlayerDie::InsertLog()
 {

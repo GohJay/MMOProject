@@ -1,17 +1,17 @@
 ﻿#include "stdafx.h"
 #include "../../Common/CrashDump.h"
 #include "../../Common/Logger.h"
-#include "MMOServer.h"
-#include "AuthServer.h"
 #include "GameServer.h"
+#include "AuthContent.h"
+#include "GameContent.h"
 #include "MonitorClient.h"
 #include "ServerConfig.h"
 #pragma comment(lib, "Winmm.lib")
 
-MMOServer g_MainServer;
-AuthServer g_AuthServer(&g_MainServer);
-GameServer g_GameServer(&g_MainServer);
-MonitorClient g_MonitorClient(&g_MainServer, &g_AuthServer, &g_GameServer);
+GameServer g_GameServer;
+AuthContent g_AuthContent(&g_GameServer);
+GameContent g_GameContent(&g_GameServer);
+MonitorClient g_MonitorClient(&g_GameServer, &g_AuthContent, &g_GameContent);
 
 time_t g_StartTime;
 bool g_StopSignal = false;
@@ -40,7 +40,7 @@ void Run()
 	if (!Init())
 		return;
 
-	if (!g_MainServer.Start(ServerConfig::GetGameServerIP()
+	if (!g_GameServer.Start(ServerConfig::GetGameServerIP()
 		, ServerConfig::GetGameServerPort()
 		, ServerConfig::GetIOCPWorkerCreate()
 		, ServerConfig::GetIOCPWorkerRunning()
@@ -57,7 +57,7 @@ void Run()
 		Sleep(1000);
 	}
 
-	g_MainServer.Stop();
+	g_GameServer.Stop();
 }
 
 bool Init()
@@ -96,17 +96,17 @@ Send TPS: %d\n\
 ------------------------------------\n\
 \n\n\n\n\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
-		, g_MainServer.GetCapacityPacketPool()
-		, g_MainServer.GetUsePacketPool()
-		, g_MainServer.GetSessionCount()
-		, g_AuthServer.GetPlayerCount()
-		, g_GameServer.GetPlayerCount()
-		, g_AuthServer.GetFPS()
-		, g_GameServer.GetFPS()
-		, g_MainServer.GetTotalAcceptCount()
-		, g_MainServer.GetAcceptTPS()
-		, g_MainServer.GetRecvTPS()
-		, g_MainServer.GetSendTPS());
+		, g_GameServer.GetCapacityPacketPool()
+		, g_GameServer.GetUsePacketPool()
+		, g_GameServer.GetSessionCount()
+		, g_AuthContent.GetPlayerCount()
+		, g_GameContent.GetPlayerCount()
+		, g_AuthContent.GetFPS()
+		, g_GameContent.GetFPS()
+		, g_GameServer.GetTotalAcceptCount()
+		, g_GameServer.GetAcceptTPS()
+		, g_GameServer.GetRecvTPS()
+		, g_GameServer.GetSendTPS());
 }
 
 void Control()

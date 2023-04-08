@@ -133,7 +133,7 @@ void Packet::MakeGetCristal(Jay::NetPacket* packet, INT64 clientID, INT64 crista
 	(*packet) << cristalClientID;
 	(*packet) << amountCristal;
 }
-void Packet::MakeCorrectHP(Jay::NetPacket* packet, int hp)
+void Packet::MakeSyncHP(Jay::NetPacket* packet, int hp)
 {
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_PLAYER_HP;
 	(*packet) << hp;

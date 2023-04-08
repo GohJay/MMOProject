@@ -2,8 +2,8 @@
 #include "DBPlayerLogout.h"
 #include "GameData.h"
 
-DBPlayerLogout::DBPlayerLogout(Jay::DBConnector* db, INT64 accountno, float posX, float posY, int tileX, int tileY, int rotation, int hp, INT64 exp, int die) :
-	_db(db), _accountno(accountno), _posX(posX), _posY(posY), _tileX(tileX), _tileY(tileY), _rotation(rotation), _hp(hp), _exp(exp), _die(die)
+DBPlayerLogout::DBPlayerLogout(Jay::DBConnector* db, INT64 accountno, float posX, float posY, int tileX, int tileY, int rotation, int hp, INT64 exp) :
+	_db(db), _accountno(accountno), _posX(posX), _posY(posY), _tileX(tileX), _tileY(tileY), _rotation(rotation), _hp(hp), _exp(exp)
 {
 }
 DBPlayerLogout::~DBPlayerLogout()
@@ -28,7 +28,7 @@ void DBPlayerLogout::UpdateAccountStatus()
 }
 void DBPlayerLogout::UpdateCharacter()
 {
-	_db->ExecuteUpdate(L"UPDATE gamedb.character SET posx = %f, posy = %f, tilex = %d, tiley = %d, rotation = %d, hp = %d, exp = %lld, die = %d WHERE accountno = %lld;"
+	_db->ExecuteUpdate(L"UPDATE gamedb.character SET posx = %f, posy = %f, tilex = %d, tiley = %d, rotation = %d, hp = %d, exp = %lld WHERE accountno = %lld;"
 		, _posX
 		, _posY
 		, _tileX
@@ -36,7 +36,6 @@ void DBPlayerLogout::UpdateCharacter()
 		, _rotation
 		, _hp
 		, _exp
-		, _die
 		, _accountno);
 }
 void DBPlayerLogout::SelectCristal()

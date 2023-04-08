@@ -1,5 +1,5 @@
 #pragma once
-#include "MMOServer.h"
+#include "GameServer.h"
 #include "PlayerObject.h"
 #include "../../Common/DBConnector.h"
 #include "../../Lib/Network/include/NetContent.h"
@@ -10,11 +10,11 @@
 
 typedef DWORD64 SESSION_ID;
 
-class AuthServer : public Jay::NetContent
+class AuthContent : public Jay::NetContent
 {
 public:
-	AuthServer(MMOServer* subject);
-	~AuthServer();
+	AuthContent(GameServer* server);
+	~AuthContent();
 public:
 	int GetPlayerCount();
 	int GetFPS();
@@ -41,7 +41,7 @@ private:
 	bool PacketProc_GameLogin(DWORD64 sessionID, Jay::NetPacket* packet);
 	bool PacketProc_CharacterSelect(DWORD64 sessionID, Jay::NetPacket* packet);
 private:
-	MMOServer* _subject;
+	GameServer* _server;
 	std::unordered_map<SESSION_ID, PlayerObject*> _playerMap;
 	std::atomic<int> _oldFPS;
 	std::atomic<int> _curFPS;

@@ -23,7 +23,7 @@ namespace Jay
 		NetServerEx();
 		virtual ~NetServerEx();
 	public:
-		void AttachContent(NetContent* handler, WORD contentID, WORD frameInterval, bool default = false);
+		void AttachContent(NetContent* handler, WORD contentID, WORD frameInterval, bool isDefault = false);
 		bool SetFrameInterval(WORD contentID, WORD frameInterval);
 		bool Start(const wchar_t* ipaddress, int port, int workerCreateCount, int workerRunningCount, WORD sessionMax, BYTE packetCode, BYTE packetKey, int timeoutSec = 0, bool nagle = true);
 		void Stop();
@@ -62,7 +62,7 @@ namespace Jay
 		void UpdateTPS();
 		void TryMoveContent(SESSION* session, WORD contentID, WPARAM wParam, LPARAM lParam);
 		CONTENT* FindContent(WORD contentID);
-		CONTENT* GetCurrentContent();
+		CONTENT* MakeSyncHP();
 		bool SessionJobProc(SESSION* session, NetContent* handler);
 		bool ContentJobProc(CONTENT* content);
 		void NotifyContent(CONTENT* content);
