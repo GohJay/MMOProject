@@ -11,6 +11,7 @@
 #include "DBRecoverHP.h"
 #include "../../Common/CommonProtocol.h"
 #include "../../Common/MathUtil.h"
+#include "../../Common/Logger.h"
 
 using namespace Jay;
 
@@ -29,6 +30,14 @@ int GameContent::GetFPS()
 {
 	return _oldFPS;
 }
+int GameContent::GetDBWriteTPS()
+{
+	return _oldDBWriteTPS;
+}
+int GameContent::GetDBJobQueueCount()
+{
+	return _dbJobQ.size();
+}
 void GameContent::OnStart()
 {
 	//--------------------------------------------------------------------
@@ -39,12 +48,12 @@ void GameContent::OnStart()
 	//--------------------------------------------------------------------
 	// DB 에서 게임에 필요한 데이터 정보 가져오기
 	//--------------------------------------------------------------------
-	FetchGamedbData();
+	GetGamedbData();
 
 	//--------------------------------------------------------------------
 	// 몬스터 출현지역에 몬스터 할당
 	//--------------------------------------------------------------------
-	AssignMonsterZone();
+	InitMonsterZone();
 }
 void GameContent::OnStop()
 {
@@ -60,6 +69,9 @@ void GameContent::OnStop()
 }
 void GameContent::OnUpdate()
 {
+	//--------------------------------------------------------------------
+	// 프레임 단위 오브젝트 업데이트 처리
+	//--------------------------------------------------------------------
 	ObjectManager::GetInstance()->Update();
 
 	_curFPS++;
@@ -174,8 +186,8 @@ void GameContent::OnContentEnter(DWORD64 sessionID, WPARAM wParam, LPARAM lParam
 	GetSectorAround(sectorX, sectorY, &sectorAround);
 	for (int i = 0; i < sectorAround.count; i++)
 	{
-		std::list<BaseObject*>* sector = &_sector[sectorAround.around[i].y][sectorAround.around[i].x];
-		for (auto iter = sector->begin(); iter != sector->end(); ++iter)
+		std::list<BaseObject*>* sectorList = &_sectorList[sectorAround.around[i].y][sectorAround.around[i].x];
+		for (auto iter = sectorList->begin(); iter != sectorList->end(); ++iter)
 		{
 			BaseObject* object = *iter;
 			if (object == player)
@@ -297,8 +309,8 @@ void GameContent::SendSectorOne(BaseObject* exclusion, NetPacket* packet, int se
 	//--------------------------------------------------------------------
 	// 특정 섹터에 있는 플레이어들에게 패킷 보내기
 	//--------------------------------------------------------------------
-	std::list<BaseObject*>* sector = &_sector[sectorY][sectorX];
-	for (auto iter = sector->begin(); iter != sector->end(); ++iter)
+	std::list<BaseObject*>* sectorList = &_sectorList[sectorY][sectorX];
+	for (auto iter = sectorList->begin(); iter != sectorList->end(); ++iter)
 	{
 		BaseObject* object = *iter;
 		if (object->GetType() != PLAYER)
@@ -435,8 +447,8 @@ void GameContent::UpdateSectorAround_Player(PlayerObject* player)
 	//--------------------------------------------------------------------------------------
 	for (int i = 0; i < removeSector.count; i++)
 	{
-		std::list<BaseObject*>* sector = &_sector[removeSector.around[i].y][removeSector.around[i].x];
-		for (auto iter = sector->begin(); iter != sector->end(); ++iter)
+		std::list<BaseObject*>* sectorList = &_sectorList[removeSector.around[i].y][removeSector.around[i].x];
+		for (auto iter = sectorList->begin(); iter != sectorList->end(); ++iter)
 		{
 			NetPacket* packet2 = NetPacket::Alloc();
 
@@ -494,8 +506,8 @@ void GameContent::UpdateSectorAround_Player(PlayerObject* player)
 	//--------------------------------------------------------------------------------------
 	for (int i = 0; i < addSector.count; i++)
 	{
-		std::list<BaseObject*>* sector = &_sector[addSector.around[i].y][addSector.around[i].x];
-		for (auto iter = sector->begin(); iter != sector->end(); ++iter)
+		std::list<BaseObject*>* sectorList = &_sectorList[addSector.around[i].y][addSector.around[i].x];
+		for (auto iter = sectorList->begin(); iter != sectorList->end(); ++iter)
 		{
 			BaseObject* object = *iter;
 			if (object == player)
@@ -504,62 +516,62 @@ void GameContent::UpdateSectorAround_Player(PlayerObject* player)
 			switch (object->GetType())
 			{
 			case PLAYER:
-			{
-				PlayerObject* existPlayer = static_cast<PlayerObject*>(object);
-				if (!existPlayer->IsDie())
 				{
+					PlayerObject* existPlayer = static_cast<PlayerObject*>(object);
+					if (!existPlayer->IsDie())
+					{
+						NetPacket* packet5 = NetPacket::Alloc();
+
+						Packet::MakeCreateOtherCharacter(packet5
+							, existPlayer->GetID()
+							, existPlayer->GetCharacterType()
+							, existPlayer->GetNickname()
+							, existPlayer->GetPosX()
+							, existPlayer->GetPosY()
+							, existPlayer->GetRotation()
+							, existPlayer->GetLevel()
+							, FALSE
+							, existPlayer->IsSit()
+							, existPlayer->IsDie());
+						SendUnicast(player, packet5);
+
+						NetPacket::Free(packet5);
+					}
+				}
+				break;
+			case MONSTER:
+				{
+					MonsterObject* existMonster = static_cast<MonsterObject*>(object);
+
 					NetPacket* packet5 = NetPacket::Alloc();
 
-					Packet::MakeCreateOtherCharacter(packet5
-						, existPlayer->GetID()
-						, existPlayer->GetCharacterType()
-						, existPlayer->GetNickname()
-						, existPlayer->GetPosX()
-						, existPlayer->GetPosY()
-						, existPlayer->GetRotation()
-						, existPlayer->GetLevel()
-						, FALSE
-						, existPlayer->IsSit()
-						, existPlayer->IsDie());
+					Packet::MakeCreateMonster(packet5
+						, existMonster->GetID()
+						, existMonster->GetPosX()
+						, existMonster->GetPosY()
+						, existMonster->GetRotation()
+						, FALSE);
 					SendUnicast(player, packet5);
 
 					NetPacket::Free(packet5);
 				}
-			}
-			break;
-			case MONSTER:
-			{
-				MonsterObject* existMonster = static_cast<MonsterObject*>(object);
-
-				NetPacket* packet5 = NetPacket::Alloc();
-
-				Packet::MakeCreateMonster(packet5
-					, existMonster->GetID()
-					, existMonster->GetPosX()
-					, existMonster->GetPosY()
-					, existMonster->GetRotation()
-					, FALSE);
-				SendUnicast(player, packet5);
-
-				NetPacket::Free(packet5);
-			}
-			break;
+				break;
 			case CRISTAL:
-			{
-				CristalObject* existCristal = static_cast<CristalObject*>(object);
+				{
+					CristalObject* existCristal = static_cast<CristalObject*>(object);
 
-				NetPacket* packet5 = NetPacket::Alloc();
+					NetPacket* packet5 = NetPacket::Alloc();
 
-				Packet::MakeCreateCristal(packet5
-					, existCristal->GetID()
-					, existCristal->GetCristalType()
-					, existCristal->GetPosX()
-					, existCristal->GetPosY());
-				SendUnicast(player, packet5);
+					Packet::MakeCreateCristal(packet5
+						, existCristal->GetID()
+						, existCristal->GetCristalType()
+						, existCristal->GetPosX()
+						, existCristal->GetPosY());
+					SendUnicast(player, packet5);
 
-				NetPacket::Free(packet5);
-			}
-			break;
+					NetPacket::Free(packet5);
+				}
+				break;
 			default:
 				break;
 			}
@@ -571,7 +583,6 @@ void GameContent::UpdateSectorAround_Monster(MonsterObject* monster)
 	//--------------------------------------------------------------------------------------
 	// 1. 이전섹터에 존재하는 플레이어들에게 - 이동하는 오브젝트의 삭제 패킷
 	// 2. 현재섹터에 존재하는 플레이어들에게 - 이동하는 오브젝트의 생성 패킷
-	// 3. 현재섹터에 존재하는 플레이어들에게 - 이동하는 오브젝트의 행동 패킷
 	//--------------------------------------------------------------------------------------
 	SECTOR_AROUND removeSector, addSector;
 	GetUpdateSectorAround(monster, &removeSector, &addSector);
@@ -606,23 +617,6 @@ void GameContent::UpdateSectorAround_Monster(MonsterObject* monster)
 	}
 
 	NetPacket::Free(packet2);
-
-	//--------------------------------------------------------------------------------------
-	// 3. addSector에 이동하는 몬스터의 이동 패킷 보내기
-	//--------------------------------------------------------------------------------------
-	NetPacket* packet3 = NetPacket::Alloc();
-
-	Packet::MakeMoveMonster(packet3
-		, monster->GetID()
-		, monster->GetPosX()
-		, monster->GetPosY()
-		, monster->GetRotation());
-	for (int i = 0; i < addSector.count; i++)
-	{
-		SendSectorOne(nullptr, packet3, addSector.around[i].x, addSector.around[i].y);
-	}
-
-	NetPacket::Free(packet3);
 }
 void GameContent::AddSector(BaseObject* object)
 {
@@ -631,7 +625,7 @@ void GameContent::AddSector(BaseObject* object)
 	//--------------------------------------------------------------------
 	int sectorX = object->GetCurSectorX();
 	int sectorY = object->GetCurSectorY();
-	_sector[sectorY][sectorX].push_back(object);
+	_sectorList[sectorY][sectorX].push_back(object);
 }
 void GameContent::RemoveSector(BaseObject* object)
 {
@@ -640,7 +634,7 @@ void GameContent::RemoveSector(BaseObject* object)
 	//--------------------------------------------------------------------
 	int sectorX = object->GetCurSectorX();
 	int sectorY = object->GetCurSectorY();
-	_sector[sectorY][sectorX].remove(object);
+	_sectorList[sectorY][sectorX].remove(object);
 }
 void GameContent::AddTile(BaseObject* object)
 {
@@ -649,7 +643,7 @@ void GameContent::AddTile(BaseObject* object)
 	//--------------------------------------------------------------------
 	int tileX = object->GetTileX();
 	int tileY = object->GetTileY();
-	_tile[tileY][tileX].push_back(object);
+	_tileList[tileY][tileX].push_back(object);
 }
 void GameContent::RemoveTile(BaseObject* object)
 {
@@ -658,7 +652,7 @@ void GameContent::RemoveTile(BaseObject* object)
 	//--------------------------------------------------------------------
 	int tileX = object->GetTileX();
 	int tileY = object->GetTileY();
-	_tile[tileY][tileX].remove(object);
+	_tileList[tileY][tileX].remove(object);
 }
 bool GameContent::IsTileOut(int tileX, int tileY)
 {
@@ -669,11 +663,11 @@ bool GameContent::IsTileOut(int tileX, int tileY)
 }
 std::list<BaseObject*>* GameContent::GetTile(int tileX, int tileY)
 {
-	return &_tile[tileY][tileX];
+	return &_tileList[tileY][tileX];
 }
 std::list<BaseObject*>* GameContent::GetSector(int sectorX, int sectorY)
 {
-	return &_sector[sectorY][sectorX];
+	return &_sectorList[sectorY][sectorX];
 }
 DATA_CRISTAL* GameContent::GetDataCristal(INT64 type)
 {
@@ -868,6 +862,7 @@ void GameContent::DBWriteThread()
 			_dbJobQ.Dequeue(job);
 			job->Exec();
 			delete job;
+			_curDBWriteTPS++;
 		}
 	}
 }
@@ -884,6 +879,7 @@ void GameContent::ManagementThread()
 			return;
 		case WAIT_TIMEOUT:
 			UpdateFPS();
+			UpdateDBWriteTPS();
 			break;
 		default:
 			break;
@@ -894,7 +890,11 @@ void GameContent::UpdateFPS()
 {
 	_oldFPS.exchange(_curFPS.exchange(0));
 }
-void GameContent::FetchGamedbData()
+void GameContent::UpdateDBWriteTPS()
+{
+	_oldDBWriteTPS.exchange(_curDBWriteTPS.exchange(0));
+}
+void GameContent::GetGamedbData()
 {
 	//--------------------------------------------------------------------
 	// DB 에서 크리스탈 데이터 정보 가져오기
@@ -936,7 +936,7 @@ void GameContent::FetchGamedbData()
 	}
 	_gamedb.ClearQuery(res);
 }
-void GameContent::AssignMonsterZone()
+void GameContent::InitMonsterZone()
 {
 	//--------------------------------------------------------------------
 	// 몬스터 리스폰 구역별 정책대로 몬스터를 할당하기
@@ -1032,14 +1032,14 @@ bool GameContent::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
 bool GameContent::PacketProc_MoveStart(DWORD64 sessionID, NetPacket* packet)
 {
 	INT64 clientID;
-	float fieldX;
-	float fieldY;
+	float posX;
+	float posY;
 	USHORT rotation;
 	BYTE vKey;
 	BYTE hKey;
 	(*packet) >> clientID;
-	(*packet) >> fieldX;
-	(*packet) >> fieldY;
+	(*packet) >> posX;
+	(*packet) >> posY;
 	(*packet) >> rotation;
 	(*packet) >> vKey;
 	(*packet) >> hKey;
@@ -1049,7 +1049,16 @@ bool GameContent::PacketProc_MoveStart(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	PlayerObject* player = _playerMap[sessionID];
 	if (player->GetID() != clientID)
+	{
+		Logger::WriteLog(L"Game"
+			, LOG_LEVEL_DEBUG
+			, L"func: %s, line: %d, error: Mismatch ID, objectID: %lld, clientID: %lld"
+			, __FUNCTIONW__
+			, __LINE__
+			, player->GetID()
+			, clientID);
 		return false;
+	}
 
 	//--------------------------------------------------------------------
 	// 플레이어 생존 여부 확인
@@ -1060,19 +1069,19 @@ bool GameContent::PacketProc_MoveStart(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 플레이어 이동 처리
 	//--------------------------------------------------------------------
-	player->MoveStart(fieldX, fieldY, rotation, vKey, hKey);
+	player->MoveStart(posX, posY, rotation, vKey, hKey);
 
 	return true;
 }
 bool GameContent::PacketProc_MoveStop(DWORD64 sessionID, NetPacket* packet)
 {
 	INT64 clientID;
-	float fieldX;
-	float fieldY;
+	float posX;
+	float posY;
 	USHORT rotation;
 	(*packet) >> clientID;
-	(*packet) >> fieldX;
-	(*packet) >> fieldY;
+	(*packet) >> posX;
+	(*packet) >> posY;
 	(*packet) >> rotation;
 
 	//--------------------------------------------------------------------
@@ -1080,7 +1089,16 @@ bool GameContent::PacketProc_MoveStop(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	PlayerObject* player = _playerMap[sessionID];
 	if (player->GetID() != clientID)
+	{
+		Logger::WriteLog(L"Game"
+			, LOG_LEVEL_DEBUG
+			, L"func: %s, line: %d, error: Mismatch ID, objectID: %lld, clientID: %lld"
+			, __FUNCTIONW__
+			, __LINE__
+			, player->GetID()
+			, clientID);
 		return false;
+	}
 
 	//--------------------------------------------------------------------
 	// 플레이어 생존 여부 확인
@@ -1091,7 +1109,7 @@ bool GameContent::PacketProc_MoveStop(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 플레이어 정지 처리
 	//--------------------------------------------------------------------
-	player->MoveStop(fieldX, fieldY, rotation);
+	player->MoveStop(posX, posY, rotation);
 
 	return true;
 }
@@ -1105,7 +1123,16 @@ bool GameContent::PacketProc_Attak1(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	PlayerObject* player = _playerMap[sessionID];
 	if (player->GetID() != clientID)
+	{
+		Logger::WriteLog(L"Game"
+			, LOG_LEVEL_DEBUG
+			, L"func: %s, line: %d, error: Mismatch ID, objectID: %lld, clientID: %lld"
+			, __FUNCTIONW__
+			, __LINE__
+			, player->GetID()
+			, clientID);
 		return false;
+	}
 
 	//--------------------------------------------------------------------
 	// 플레이어 생존 여부 확인
@@ -1130,7 +1157,16 @@ bool GameContent::PacketProc_Attak2(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	PlayerObject* player = _playerMap[sessionID];
 	if (player->GetID() != clientID)
+	{
+		Logger::WriteLog(L"Game"
+			, LOG_LEVEL_DEBUG
+			, L"func: %s, line: %d, error: Mismatch ID, objectID: %lld, clientID: %lld"
+			, __FUNCTIONW__
+			, __LINE__
+			, player->GetID()
+			, clientID);
 		return false;
+	}
 
 	//--------------------------------------------------------------------
 	// 플레이어 생존 여부 확인
@@ -1155,7 +1191,16 @@ bool GameContent::PacketProc_Pick(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	PlayerObject* player = _playerMap[sessionID];
 	if (player->GetID() != clientID)
+	{
+		Logger::WriteLog(L"Game"
+			, LOG_LEVEL_DEBUG
+			, L"func: %s, line: %d, error: Mismatch ID, objectID: %lld, clientID: %lld"
+			, __FUNCTIONW__
+			, __LINE__
+			, player->GetID()
+			, clientID);
 		return false;
+	}
 
 	//--------------------------------------------------------------------
 	// 플레이어 생존 여부 확인
@@ -1180,7 +1225,16 @@ bool GameContent::PacketProc_Sit(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	PlayerObject* player = _playerMap[sessionID];
 	if (player->GetID() != clientID)
+	{
+		Logger::WriteLog(L"Game"
+			, LOG_LEVEL_DEBUG
+			, L"func: %s, line: %d, error: Mismatch ID, objectID: %lld, clientID: %lld"
+			, __FUNCTIONW__
+			, __LINE__
+			, player->GetID()
+			, clientID);
 		return false;
+	}
 
 	//--------------------------------------------------------------------
 	// 플레이어 생존 여부 확인

@@ -75,5 +75,5 @@ private:
 	DWORD _lastRecoverHPTime;
 	DWORD _sitStartTime;
 	GameContent* _game;
-	static Jay::LFObjectPool_TLS<PlayerObject> _pool;
+	static Jay::LFObjectPool<PlayerObject> _pool;
 };

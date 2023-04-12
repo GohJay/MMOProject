@@ -23,5 +23,5 @@ private:
 	DWORD _creationTime;
 	int _amount;
 	GameContent* _game;
-	static Jay::LFObjectPool_TLS<CristalObject> _pool;
+	static Jay::LFObjectPool<CristalObject> _pool;
 };

@@ -55,5 +55,5 @@ private:
 	INT64 _targetPlayerID;
 	PlayerObject* _targetPlayer;
 	GameContent* _game;
-	static Jay::LFObjectPool_TLS<MonsterObject> _pool;
+	static Jay::LFObjectPool<MonsterObject> _pool;
 };

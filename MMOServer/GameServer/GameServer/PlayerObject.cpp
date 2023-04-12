@@ -10,7 +10,7 @@
 
 using namespace Jay;
 
-LFObjectPool_TLS<PlayerObject> PlayerObject::_pool(0, true);
+LFObjectPool<PlayerObject> PlayerObject::_pool(0, true);
 
 PlayerObject::PlayerObject() : BaseObject(PLAYER), _login(false)
 {
@@ -242,11 +242,11 @@ void PlayerObject::Restart()
 	SECTOR_AROUND sectorAround;
 	_game->GetSectorAround(_curSector.x, _curSector.y, &sectorAround);
 
-	std::list<BaseObject*>* sector;
+	std::list<BaseObject*>* sectorList;
 	for (int i = 0; i < sectorAround.count; i++)
 	{
-		sector = _game->GetSector(sectorAround.around[i].x, sectorAround.around[i].y);
-		for (auto iter = sector->begin(); iter != sector->end(); ++iter)
+		sectorList = _game->GetSector(sectorAround.around[i].x, sectorAround.around[i].y);
+		for (auto iter = sectorList->begin(); iter != sectorList->end(); ++iter)
 		{
 			BaseObject* object = *iter;
 			if (object == this)
@@ -631,14 +631,14 @@ bool PlayerObject::FindObjectInFront(OBJECT_TYPE type, BaseObject** object)
 	//--------------------------------------------------------------------
 	// 전방 좌표에 있는 오브젝트 찾기
 	//--------------------------------------------------------------------
-	std::list<BaseObject*>* tile;
+	std::list<BaseObject*>* tileList;
 	for (int i = 0; i < 4; i++)
 	{
 		if (_game->IsTileOut(nextX[i], nextY[i]))
 			continue;
 
-		tile = _game->GetTile(nextX[i], nextY[i]);
-		for (auto iter = tile->begin(); iter != tile->end(); ++iter)
+		tileList = _game->GetTile(nextX[i], nextY[i]);
+		for (auto iter = tileList->begin(); iter != tileList->end(); ++iter)
 		{
 			BaseObject* targetObject = *iter;
 			if (targetObject->GetType() == type)

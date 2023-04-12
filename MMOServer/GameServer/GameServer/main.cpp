@@ -88,13 +88,15 @@ Auth Player Count: %d\n\
 Game Player Count: %d\n\
 Auth FPS: %d\n\
 Game FPS: %d\n\
+DB Write TPS: %d\n\
+DB Job Queue Count: %d\n\
 ------------------------------------\n\
 Total Accept: %lld\n\
 Accept TPS: %d\n\
 Recv TPS: %d\n\
 Send TPS: %d\n\
 ------------------------------------\n\
-\n\n\n\n\n\n\n\n\n\n\n\n\n"
+\n\n\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
 		, g_GameServer.GetCapacityPacketPool()
 		, g_GameServer.GetUsePacketPool()
@@ -103,6 +105,8 @@ Send TPS: %d\n\
 		, g_GameContent.GetPlayerCount()
 		, g_AuthContent.GetFPS()
 		, g_GameContent.GetFPS()
+		, g_GameContent.GetDBWriteTPS()
+		, g_GameContent.GetDBJobQueueCount()
 		, g_GameServer.GetTotalAcceptCount()
 		, g_GameServer.GetAcceptTPS()
 		, g_GameServer.GetRecvTPS()

@@ -25,6 +25,8 @@ public:
 public:
 	int GetPlayerCount();
 	int GetFPS();
+	int GetDBWriteTPS();
+	int GetDBJobQueueCount();
 private:
 	void OnStart() override;
 	void OnStop() override;
@@ -66,8 +68,9 @@ private:
 	void DBWriteThread();
 	void ManagementThread();
 	void UpdateFPS();
-	void FetchGamedbData();
-	void AssignMonsterZone();
+	void UpdateDBWriteTPS();
+	void GetGamedbData();
+	void InitMonsterZone();
 private:
 	bool PacketProc(DWORD64 sessionID, Jay::NetPacket* packet, WORD type);
 	bool PacketProc_MoveStart(DWORD64 sessionID, Jay::NetPacket* packet);
@@ -84,10 +87,12 @@ private:
 	std::unordered_map<INT64, DATA_CRISTAL*> _dataCristalMap;
 	std::unordered_map<INT64, DATA_MONSTER*> _dataMonsterMap;
 	DATA_PLAYER _dataPlayer;
-	std::list<BaseObject*> _tile[dfMAP_TILE_MAX_Y][dfMAP_TILE_MAX_X];
-	std::list<BaseObject*> _sector[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
+	std::list<BaseObject*> _tileList[dfMAP_TILE_MAX_Y][dfMAP_TILE_MAX_X];
+	std::list<BaseObject*> _sectorList[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
 	std::atomic<int> _oldFPS;
 	std::atomic<int> _curFPS;
+	std::atomic<int> _oldDBWriteTPS;
+	std::atomic<int> _curDBWriteTPS;
 	std::thread _managementThread;
 	std::thread _dbWriteThread;
 	Jay::DBConnector _gamedb;

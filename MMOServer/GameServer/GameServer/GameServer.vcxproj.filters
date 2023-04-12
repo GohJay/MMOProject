@@ -228,7 +228,7 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="DBRecoverHP.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>DBJob</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

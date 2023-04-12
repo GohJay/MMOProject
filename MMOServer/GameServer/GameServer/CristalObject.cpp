@@ -7,7 +7,7 @@
 
 using namespace Jay;
 
-LFObjectPool_TLS<CristalObject> CristalObject::_pool(0, true);
+LFObjectPool<CristalObject> CristalObject::_pool(0, true);
 
 CristalObject::CristalObject() : BaseObject(CRISTAL)
 {

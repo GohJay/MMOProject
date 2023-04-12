@@ -44,6 +44,7 @@ void DBPlayerLogout::SelectCristal()
 	res = _db->ExecuteQuery(L"SELECT cristal FROM gamedb.character WHERE accountno = %lld;", _accountno);
 	if (res->next())
 		_totalCristal = res->getInt(1);
+	_db->ClearQuery(res);
 }
 void DBPlayerLogout::InsertLog()
 {
@@ -90,7 +91,7 @@ void DBPlayerLogout::CreateLogTable()
 
 	try
 	{
-		_db->Execute(L"CREATE TABLE logdb.gamelog_%d%02d LIKE gamelog_template;"
+		_db->Execute(L"CREATE TABLE logdb.gamelog_%d%02d LIKE logdb.gamelog_template;"
 			, stTime.tm_year + 1900
 			, stTime.tm_mon + 1);
 	}

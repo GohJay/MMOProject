@@ -27,6 +27,7 @@ void DBGetCristal::UpdateCharacter()
 		_totalCristal = res->getInt(1);
 		_totalCristal += _getCristal;
 	}
+	_db->ClearQuery(res);
 
 	_db->ExecuteUpdate(L"UPDATE gamedb.character SET cristal = %d WHERE accountno = %lld;", _totalCristal, _accountno);
 }
@@ -73,7 +74,7 @@ void DBGetCristal::CreateLogTable()
 
 	try
 	{
-		_db->Execute(L"CREATE TABLE logdb.gamelog_%d%02d LIKE gamelog_template;"
+		_db->Execute(L"CREATE TABLE logdb.gamelog_%d%02d LIKE logdb.gamelog_template;"
 			, stTime.tm_year + 1900
 			, stTime.tm_mon + 1);
 	}

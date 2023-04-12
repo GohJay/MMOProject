@@ -121,6 +121,8 @@ void MonitorClient::MonitoringProc()
 	Update(dfMONITOR_DATA_TYPE_GAME_ACCEPT_TPS, _server->GetAcceptTPS(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_PACKET_RECV_TPS, _server->GetRecvTPS(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_PACKET_SEND_TPS, _server->GetSendTPS(), timer);
+	Update(dfMONITOR_DATA_TYPE_GAME_DB_WRITE_TPS, _game->GetDBWriteTPS(), timer);
+	Update(dfMONITOR_DATA_TYPE_GAME_DB_WRITE_MSG, _game->GetDBJobQueueCount(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_AUTH_THREAD_FPS, _auth->GetFPS(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_GAME_THREAD_FPS, _game->GetFPS(), timer);
 	Update(dfMONITOR_DATA_TYPE_GAME_PACKET_POOL, _server->GetUsePacketPool(), timer);

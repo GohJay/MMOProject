@@ -13,40 +13,40 @@ void Packet::MakeCharacterSelect(Jay::NetPacket* packet, BYTE characterType)
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_CHARACTER_SELECT;
 	(*packet) << characterType;
 }
-void Packet::MakeCreateMyCharacter(Jay::NetPacket* packet, INT64 clientID, BYTE characterType, WCHAR* nickname, float fieldX, float fieldY, USHORT rotation, int cristal, int hp, INT64 exp, USHORT level)
+void Packet::MakeCreateMyCharacter(Jay::NetPacket* packet, INT64 clientID, BYTE characterType, WCHAR* nickname, float posX, float posY, USHORT rotation, int cristal, int hp, INT64 exp, USHORT level)
 {
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_CREATE_MY_CHARACTER;
 	(*packet) << clientID;
 	(*packet) << characterType;
 	packet->PutData((char*)nickname, 20 * sizeof(WCHAR));
-	(*packet) << fieldX;
-	(*packet) << fieldY;
+	(*packet) << posX;
+	(*packet) << posY;
 	(*packet) << rotation;
 	(*packet) << cristal;
 	(*packet) << hp;
 	(*packet) << exp;
 	(*packet) << level;
 }
-void Packet::MakeCreateOtherCharacter(Jay::NetPacket* packet, INT64 clientID, BYTE characterType, WCHAR* nickname, float fieldX, float fieldY, USHORT rotation, USHORT level, BYTE respawn, BYTE sit, BYTE die)
+void Packet::MakeCreateOtherCharacter(Jay::NetPacket* packet, INT64 clientID, BYTE characterType, WCHAR* nickname, float posX, float posY, USHORT rotation, USHORT level, BYTE respawn, BYTE sit, BYTE die)
 {
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_CREATE_OTHER_CHARACTER;
 	(*packet) << clientID;
 	(*packet) << characterType;
 	packet->PutData((char*)nickname, 20 * sizeof(WCHAR));
-	(*packet) << fieldX;
-	(*packet) << fieldY;
+	(*packet) << posX;
+	(*packet) << posY;
 	(*packet) << rotation;
 	(*packet) << level;
 	(*packet) << respawn;
 	(*packet) << sit;
 	(*packet) << die;
 }
-void Packet::MakeCreateMonster(Jay::NetPacket* packet, INT64 clientID, float fieldX, float fieldY, USHORT rotation, BYTE respawn)
+void Packet::MakeCreateMonster(Jay::NetPacket* packet, INT64 clientID, float posX, float posY, USHORT rotation, BYTE respawn)
 {
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_CREATE_MONSTER_CHARACTER;
 	(*packet) << clientID;
-	(*packet) << fieldX;
-	(*packet) << fieldY;
+	(*packet) << posX;
+	(*packet) << posY;
 	(*packet) << rotation;
 	(*packet) << respawn;
 }
@@ -55,30 +55,30 @@ void Packet::MakeDeleteObject(Jay::NetPacket* packet, INT64 clientID)
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_REMOVE_OBJECT;
 	(*packet) << clientID;
 }
-void Packet::MakeMoveCharacterStart(Jay::NetPacket* packet, INT64 clientID, float fieldX, float fieldY, USHORT rotation, BYTE vKey, BYTE hKey)
+void Packet::MakeMoveCharacterStart(Jay::NetPacket* packet, INT64 clientID, float posX, float posY, USHORT rotation, BYTE vKey, BYTE hKey)
 {
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_MOVE_CHARACTER;
 	(*packet) << clientID;
-	(*packet) << fieldX;
-	(*packet) << fieldY;
+	(*packet) << posX;
+	(*packet) << posY;
 	(*packet) << rotation;
 	(*packet) << vKey;
 	(*packet) << hKey;
 }
-void Packet::MakeMoveCharacterStop(Jay::NetPacket* packet, INT64 clientID, float fieldX, float fieldY, USHORT rotation)
+void Packet::MakeMoveCharacterStop(Jay::NetPacket* packet, INT64 clientID, float posX, float posY, USHORT rotation)
 {
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_STOP_CHARACTER;
 	(*packet) << clientID;
-	(*packet) << fieldX;
-	(*packet) << fieldY;
+	(*packet) << posX;
+	(*packet) << posY;
 	(*packet) << rotation;
 }
-void Packet::MakeMoveMonster(Jay::NetPacket* packet, INT64 clientID, float fieldX, float fieldY, USHORT rotation)
+void Packet::MakeMoveMonster(Jay::NetPacket* packet, INT64 clientID, float posX, float posY, USHORT rotation)
 {
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_MOVE_MONSTER;
 	(*packet) << clientID;
-	(*packet) << fieldX;
-	(*packet) << fieldY;
+	(*packet) << posX;
+	(*packet) << posY;
 	(*packet) << rotation;
 }
 void Packet::MakeAttack1(Jay::NetPacket* packet, INT64 clientID)
@@ -108,13 +108,13 @@ void Packet::MakeMonsterDie(Jay::NetPacket* packet, INT64 clientID)
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_MONSTER_DIE;
 	(*packet) << clientID;
 }
-void Packet::MakeCreateCristal(Jay::NetPacket* packet, INT64 clientID, BYTE cristalType, float fieldX, float fieldY)
+void Packet::MakeCreateCristal(Jay::NetPacket* packet, INT64 clientID, BYTE cristalType, float posX, float posY)
 {
 	(*packet) << (WORD)en_PACKET_CS_GAME_RES_CREATE_CRISTAL;
 	(*packet) << clientID;
 	(*packet) << cristalType;
-	(*packet) << fieldX;
-	(*packet) << fieldY;
+	(*packet) << posX;
+	(*packet) << posY;
 }
 void Packet::MakePickCristal(Jay::NetPacket* packet, INT64 clientID)
 {

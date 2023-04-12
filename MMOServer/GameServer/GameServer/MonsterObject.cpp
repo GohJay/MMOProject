@@ -9,7 +9,7 @@
 
 using namespace Jay;
 
-LFObjectPool_TLS<MonsterObject> MonsterObject::_pool(0, true);
+LFObjectPool<MonsterObject> MonsterObject::_pool(0, true);
 
 MonsterObject::MonsterObject() : BaseObject(MONSTER)
 {
@@ -359,12 +359,6 @@ void MonsterObject::Damage(PlayerObject* attackPlayer, int damage)
 	_lastDeadTime = timeGetTime();
 
 	//--------------------------------------------------------------------
-	// 필드 및 섹터에서 몬스터 제거
-	//--------------------------------------------------------------------
-	_game->RemoveTile(this);
-	_game->RemoveSector(this);
-
-	//--------------------------------------------------------------------
 	// 주변 영향권 섹터에 있는 플레이어들에게 해당 몬스터의 사망 패킷 보내기
 	//--------------------------------------------------------------------
 	NetPacket* packet = NetPacket::Alloc();
@@ -373,6 +367,12 @@ void MonsterObject::Damage(PlayerObject* attackPlayer, int damage)
 	_game->SendSectorAround(this, packet, false);
 
 	NetPacket::Free(packet);
+
+	//--------------------------------------------------------------------
+	// 필드 및 섹터에서 몬스터 제거
+	//--------------------------------------------------------------------
+	_game->RemoveTile(this);
+	_game->RemoveSector(this);
 
 	//--------------------------------------------------------------------
 	// 몬스터가 사망한 위치에 크리스탈 생성

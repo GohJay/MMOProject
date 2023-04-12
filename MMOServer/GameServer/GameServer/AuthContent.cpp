@@ -209,6 +209,8 @@ bool AuthContent::GetExistPlayerInfo(PlayerObject* player)
 void AuthContent::SetDefaultPlayerInfo(PlayerObject* player, BYTE characterType)
 {
 	std::wstring nickname;
+	float posX;
+	float posY;
 	int tileX;
 	int tileY;
 	USHORT rotation;
@@ -223,12 +225,15 @@ void AuthContent::SetDefaultPlayerInfo(PlayerObject* player, BYTE characterType)
 	sql::ResultSet* res = _gamedb.ExecuteQuery(L"SELECT usernick FROM accountdb.account WHERE accountno = %lld;", player->GetAccountNo());
 	if (res->next())
 		MultiByteToWString(res->getString(1).c_str(), nickname);
+	_gamedb.ClearQuery(res);
 
 	//--------------------------------------------------------------------
 	// 신규 플레이어를 기본 능력치로 세팅
 	//--------------------------------------------------------------------
 	tileX = (dfPLAYER_TILE_X_RESPAWN_CENTER - 10) + (rand() % 21);
 	tileY = (dfPLAYER_TILE_Y_RESPAWN_CENTER - 15) + (rand() % 31);
+	posX = (float)tileX / 2;
+	posY = (float)tileY / 2;
 	rotation = rand() % 360;
 	cristal = 0;
 	hp = dfPLAYER_HP_DEFAULT;
@@ -241,8 +246,8 @@ void AuthContent::SetDefaultPlayerInfo(PlayerObject* player, BYTE characterType)
 	_gamedb.ExecuteUpdate(L"INSERT INTO gamedb.character(accountno, charactertype, posx, posy, tilex, tiley, rotation, cristal, hp, exp, level, die) VALUES(%lld, %d, %f, %f, %d, %d, %d, %d, %d, %lld, %d, %d);"
 		, player->GetAccountNo()
 		, characterType
-		, (float)tileX / 2
-		, (float)tileY / 2
+		, posX
+		, posY
 		, tileX
 		, tileY
 		, rotation
@@ -252,7 +257,7 @@ void AuthContent::SetDefaultPlayerInfo(PlayerObject* player, BYTE characterType)
 		, level
 		, FALSE);
 
-	player->Init(&nickname[0], characterType, tileX / 2, tileY / 2, rotation, cristal, hp, exp, level, false);
+	player->Init(&nickname[0], characterType, posX, posY, rotation, cristal, hp, exp, level, false);
 }
 void AuthContent::MoveGameThread(PlayerObject* player)
 {
@@ -274,7 +279,7 @@ bool AuthContent::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
 		return PacketProc_CharacterSelect(sessionID, packet);
 	case en_PACKET_CS_GAME_REQ_HEARTBEAT:
 		return true;
-	default:		
+	default:
 		break;
 	}
 	return false;
