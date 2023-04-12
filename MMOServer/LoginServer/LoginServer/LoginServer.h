@@ -32,8 +32,9 @@ private:
 	void ManagementThread();
 private:
 	void UpdateTPS();
-	void FetchWhiteIPList();
 	bool CheckWhiteIP(const wchar_t* ipaddress);
+	void GetWhiteIPList();
+	void GetAccountInfo(INT64 accountNo, char* sessionKey, BYTE& status, std::wstring& userID, std::wstring& userNick);
 private:
 	bool PacketProc(DWORD64 sessionID, Jay::NetPacket* packet, WORD type);
 	bool PacketProc_Login(DWORD64 sessionID, Jay::NetPacket* packet);
@@ -46,4 +47,12 @@ private:
 	cpp_redis::client _memorydb;
 	bool _serviceMode;
 	bool _stopSignal;
+};
+
+enum ACCOUNT_STATUS
+{
+	ACCOUNT_STATUS_LOGOUT = 0,
+	ACCOUNT_STATUS_LOGIN_ING,
+	ACCOUNT_STATUS_LOGIN_DONE,
+	ACCOUNT_STATUS_GAME_PLAY,
 };

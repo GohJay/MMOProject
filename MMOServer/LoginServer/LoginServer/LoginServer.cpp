@@ -122,7 +122,7 @@ bool LoginServer::Initial()
 		, ServerConfig::GetDatabasePassword()
 		, ServerConfig::GetDatabaseSchema());
 
-	FetchWhiteIPList();
+	GetWhiteIPList();
 
 	//--------------------------------------------------------------------
 	// Thread Begin
@@ -155,7 +155,18 @@ void LoginServer::UpdateTPS()
 {
 	_oldAuthTPS.exchange(_curAuthTPS.exchange(0));
 }
-void LoginServer::FetchWhiteIPList()
+bool LoginServer::CheckWhiteIP(const wchar_t* ipaddress)
+{
+	//--------------------------------------------------------------------
+	// White IP 목록 확인
+	//--------------------------------------------------------------------
+	auto iter = _whiteIPTable.find(ipaddress);
+	if (iter == _whiteIPTable.end())
+		return false;
+
+	return true;
+}
+void LoginServer::GetWhiteIPList()
 {
 	//--------------------------------------------------------------------
 	// DB 에서 White IP 목록 가져오기
@@ -169,16 +180,77 @@ void LoginServer::FetchWhiteIPList()
 	}
 	_accountdb.ClearQuery(res);
 }
-bool LoginServer::CheckWhiteIP(const wchar_t* ipaddress)
+void LoginServer::GetAccountInfo(INT64 accountNo, char* sessionKey, BYTE& status, std::wstring& userID, std::wstring& userNick)
 {
-	//--------------------------------------------------------------------
-	// White IP 목록 확인
-	//--------------------------------------------------------------------
-	auto iter = _whiteIPTable.find(ipaddress);
-	if (iter == _whiteIPTable.end())
-		return false;
+	INT64 db_accountNo;
+	char db_sessionKey[64];
+	int db_status;
 
-	return true;
+	sql::ResultSet* res = nullptr;
+	_accountdb.Execute(L"START TRANSACTION;");
+	
+	do
+	{
+		//--------------------------------------------------------------------
+		// DB 에서 회원 정보 조회
+		//--------------------------------------------------------------------
+		res = _accountdb.ExecuteQuery(L"SELECT\
+`a`.`accountno` AS `accountno`,\
+`a`.`userid` AS `userid`,\
+`a`.`usernick` AS `usernick`,\
+`b`.`sessionkey` AS `sessionkey`,\
+`c`.`status` AS `status`\
+FROM ((`account` `a`\
+LEFT JOIN `sessionkey` `b` ON((`a`.`accountno` = `b`.`accountno`)))\
+LEFT JOIN `status` `c` ON((`a`.`accountno` = `c`.`accountno`)))\
+WHERE a.`accountno` = %lld FOR UPDATE;", accountNo);
+
+		if (!res->next())
+			break;
+
+		db_accountNo = res->getInt64(1);
+		MultiByteToWString(res->getString(2).c_str(), userID);
+		MultiByteToWString(res->getString(3).c_str(), userNick);
+		memmove(db_sessionKey, res->getString(4).c_str(), res->getString(4).length());
+		db_status = res->getInt(5);
+
+		//--------------------------------------------------------------------
+		// 세션 키 검증 ( 더미 클라이언트일 경우 검증 제외 )
+		//--------------------------------------------------------------------
+		if (accountNo > 999999 && strncmp(sessionKey, db_sessionKey, sizeof(db_sessionKey)) != 0)
+			break;
+
+		//--------------------------------------------------------------------
+		// 중복 로그인 여부 검증
+		//--------------------------------------------------------------------
+		if (db_status == ACCOUNT_STATUS_LOGIN_ING)
+		{
+			status = dfLOGIN_STATUS_NONE;
+			break;
+		}
+		else if (db_status == ACCOUNT_STATUS_LOGIN_DONE)
+		{
+			status = dfLOGIN_STATUS_FAIL;
+			break;
+		}
+		else if (db_status == ACCOUNT_STATUS_GAME_PLAY)
+		{
+			status = dfLOGIN_STATUS_GAME;
+			break;
+		}
+
+		//--------------------------------------------------------------------
+		// DB 에 로그인 상태 업데이트 ( OFFLINE -> LOGIN_ING )
+		//--------------------------------------------------------------------
+		_accountdb.ExecuteUpdate(L"UPDATE status SET status = %d WHERE accountno = %lld;"
+			, ACCOUNT_STATUS_LOGIN_ING
+			, accountNo);
+
+		status = dfLOGIN_STATUS_OK;
+	} while (0);
+
+	_accountdb.Execute(L"COMMIT;");
+	_accountdb.ClearQuery(res);
 }
 bool LoginServer::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
 {
@@ -207,79 +279,48 @@ bool LoginServer::PacketProc_Login(DWORD64 sessionID, NetPacket* packet)
 		return false;
 
 	//--------------------------------------------------------------------
-	// DB 에서 유저 정보 조회
+	// DB에서 회원 정보 조회 및 검증
 	//--------------------------------------------------------------------
-	INT64 db_accountNo;
-	char db_sessionKey[64];
-	int db_status;
-	int db_timeSec;
-	std::wstring db_userID;
-	std::wstring db_userNick;
-	db_userID.reserve(20);
-	db_userNick.reserve(20);
-
-	sql::ResultSet* res = _accountdb.ExecuteQuery(L"SELECT\
-`a`.`accountno` AS `accountno`,\
-`a`.`userid` AS `userid`,\
-`a`.`usernick` AS `usernick`,\
-`b`.`sessionkey` AS `sessionkey`,\
-`c`.`status` AS `status`\
-FROM ((`account` `a`\
-LEFT JOIN `sessionkey` `b` ON((`a`.`accountno` = `b`.`accountno`)))\
-LEFT JOIN `status` `c` ON((`a`.`accountno` = `c`.`accountno`)))\
-WHERE a.`accountno` = %lld;", accountNo);
-
 	BYTE status;
-	if (res->next())
-	{
-		db_accountNo = res->getInt64(1);
-		MultiByteToWString(res->getString(2).c_str(), db_userID);
-		MultiByteToWString(res->getString(3).c_str(), db_userNick);
-		memmove(db_sessionKey, res->getString(4).c_str(), res->getString(4).length());
-		db_status = res->getInt(5);
+	std::wstring userID;
+	std::wstring userNick;
+	GetAccountInfo(accountNo, sessionKey, status, userID, userNick);
 
-		status = dfLOGIN_STATUS_OK;
-	}
-	else
-	{
-		status = dfLOGIN_STATUS_FAIL;
-	}
-	_accountdb.ClearQuery(res);
-
-	//--------------------------------------------------------------------
-	// Redis 에 세션 토큰 저장 (Key: AccountNo, Value: SessionKey)
-	//--------------------------------------------------------------------
 	if (status == dfLOGIN_STATUS_OK)
 	{
+		//--------------------------------------------------------------------
+		// Redis 에 세션 토큰 저장 (Key: AccountNo, Value: SessionKey)
+		//--------------------------------------------------------------------
 		std::string key(std::to_string(accountNo));
 		std::string token(sessionKey, sizeof(sessionKey));
 		_memorydb.setex(key + "_chat", ServerConfig::GetRedisTimeoutSec(), token);
 		_memorydb.setex(key + "_game", ServerConfig::GetRedisTimeoutSec(), token);
 		_memorydb.sync_commit();
-	}
 
-	//--------------------------------------------------------------------
-	// 오브젝트풀에서 직렬화 버퍼 할당
-	//--------------------------------------------------------------------
-	NetPacket* resPacket = NetPacket::Alloc();
+		//--------------------------------------------------------------------
+		// DB 에 로그인 상태 업데이트 ( LOGIN_ING -> LOGIN_DONE )
+		//--------------------------------------------------------------------
+		_accountdb.ExecuteUpdate(L"UPDATE status SET status = %d WHERE accountno = %lld;"
+			, ACCOUNT_STATUS_LOGIN_DONE
+			, accountNo);
+	}
 
 	//--------------------------------------------------------------------
 	// 해당 유저에게 로그인 응답 메시지 보내기
 	//--------------------------------------------------------------------
+	NetPacket* resPacket = NetPacket::Alloc();
+
 	Packet::MakeLogin(resPacket
 		, accountNo
 		, status
-		, &db_userID[0]
-		, &db_userNick[0]
+		, &userID[0]
+		, &userNick[0]
 		, (WCHAR*)ServerConfig::GetGameServerIP()
 		, ServerConfig::GetGameServerPort()
 		, (WCHAR*)ServerConfig::GetChatServerIP()
 		, ServerConfig::GetChatServerPort());
 	SendPacket(sessionID, resPacket);
 
-	//--------------------------------------------------------------------
-	// 오브젝트풀에 직렬화 버퍼 반납
-	//--------------------------------------------------------------------
 	NetPacket::Free(resPacket);
 
 	_curAuthTPS++;
