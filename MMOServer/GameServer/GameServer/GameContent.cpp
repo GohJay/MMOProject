@@ -198,25 +198,23 @@ void GameContent::OnContentEnter(DWORD64 sessionID, WPARAM wParam, LPARAM lParam
 			case PLAYER:
 				{
 					PlayerObject* existPlayer = static_cast<PlayerObject*>(object);
-					if (!existPlayer->IsDie())
-					{
-						NetPacket* packet2 = NetPacket::Alloc();
 
-						Packet::MakeCreateOtherCharacter(packet2
-							, existPlayer->GetID()
-							, existPlayer->GetCharacterType()
-							, existPlayer->GetNickname()
-							, existPlayer->GetPosX()
-							, existPlayer->GetPosY()
-							, existPlayer->GetRotation()
-							, existPlayer->GetLevel()
-							, FALSE
-							, existPlayer->IsSit()
-							, existPlayer->IsDie());
-						SendUnicast(player, packet2);
+					NetPacket* packet2 = NetPacket::Alloc();
 
-						NetPacket::Free(packet2);
-					}
+					Packet::MakeCreateOtherCharacter(packet2
+						, existPlayer->GetID()
+						, existPlayer->GetCharacterType()
+						, existPlayer->GetNickname()
+						, existPlayer->GetPosX()
+						, existPlayer->GetPosY()
+						, existPlayer->GetRotation()
+						, existPlayer->GetLevel()
+						, FALSE
+						, existPlayer->IsSit()
+						, existPlayer->IsDie());
+					SendUnicast(player, packet2);
+
+					NetPacket::Free(packet2);
 				}
 				break;
 			case MONSTER:
@@ -518,25 +516,23 @@ void GameContent::UpdateSectorAround_Player(PlayerObject* player)
 			case PLAYER:
 				{
 					PlayerObject* existPlayer = static_cast<PlayerObject*>(object);
-					if (!existPlayer->IsDie())
-					{
-						NetPacket* packet5 = NetPacket::Alloc();
 
-						Packet::MakeCreateOtherCharacter(packet5
-							, existPlayer->GetID()
-							, existPlayer->GetCharacterType()
-							, existPlayer->GetNickname()
-							, existPlayer->GetPosX()
-							, existPlayer->GetPosY()
-							, existPlayer->GetRotation()
-							, existPlayer->GetLevel()
-							, FALSE
-							, existPlayer->IsSit()
-							, existPlayer->IsDie());
-						SendUnicast(player, packet5);
+					NetPacket* packet5 = NetPacket::Alloc();
 
-						NetPacket::Free(packet5);
-					}
+					Packet::MakeCreateOtherCharacter(packet5
+						, existPlayer->GetID()
+						, existPlayer->GetCharacterType()
+						, existPlayer->GetNickname()
+						, existPlayer->GetPosX()
+						, existPlayer->GetPosY()
+						, existPlayer->GetRotation()
+						, existPlayer->GetLevel()
+						, FALSE
+						, existPlayer->IsSit()
+						, existPlayer->IsDie());
+					SendUnicast(player, packet5);
+
+					NetPacket::Free(packet5);
 				}
 				break;
 			case MONSTER:
@@ -1257,6 +1253,16 @@ bool GameContent::PacketProc_Restart(DWORD64 sessionID, NetPacket* packet)
 	PlayerObject* player = _playerMap[sessionID];
 	if (!player->IsDie())
 		return true;
+
+	//--------------------------------------------------------------------
+	// 주변 영향권 섹터에 있는 플레이어들에게 해당 플레이어의 삭제 패킷 보내기
+	//--------------------------------------------------------------------
+	NetPacket* packet1 = NetPacket::Alloc();
+
+	Packet::MakeDeleteObject(packet1, player->GetID());
+	SendSectorAround(player, packet1, false);
+
+	NetPacket::Free(packet1);
 
 	//--------------------------------------------------------------------
 	// 기존 섹터에서 플레이어 제거

@@ -227,8 +227,11 @@ void MonsterObject::Move()
 	int degree;
 	int chance;
 
-	if (IsTargetVisibleAndInRange() && !IsAttackInRange())
+	if (IsTargetVisibleAndInRange())
 	{
+		if (IsAttackInRange())
+			return;
+
 		// 공격할 대상이 있으므로 타겟 플레이어 방향으로 이동
 		posX = _targetPlayer->GetPosX() - _posX;
 		posY = _targetPlayer->GetPosY() - _posY;
@@ -241,11 +244,11 @@ void MonsterObject::Move()
 	}
 	else
 	{
-		// 공격할 대상이 없으므로 일정 확률에 의해 랜덤 방향으로 이동
 		chance = rand() % 100;
 		if (chance >= dfMONSTER_MOVE_RANDOM_CHANCE)
 			return;
 
+		// 공격할 대상이 없으므로 일정 확률에 의해 랜덤 방향으로 이동
 		degree = rand() % 360;
 		radian = DegreeToRadian(degree);
 		posX = _posX + (cosf(radian) * _scala);

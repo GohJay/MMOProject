@@ -562,22 +562,12 @@ void PlayerObject::Damage(int damage)
 	//--------------------------------------------------------------------
 	// 해당 플레이어에게 사망 패킷 보내기
 	//--------------------------------------------------------------------
-	NetPacket* packet1 = NetPacket::Alloc();
+	NetPacket* packet = NetPacket::Alloc();
 
-	Packet::MakeCharacterDie(packet1, _objectID, minusCristal);
-	_game->SendUnicast(this, packet1);
+	Packet::MakeCharacterDie(packet, _objectID, minusCristal);
+	_game->SendSectorAround(this, packet, true);
 
-	NetPacket::Free(packet1);
-
-	//--------------------------------------------------------------------
-	// 주변 영향권 섹터에 있는 플레이어들에게 해당 플레이어의 삭제 패킷 보내기
-	//--------------------------------------------------------------------
-	NetPacket* packet2 = NetPacket::Alloc();
-
-	Packet::MakeDeleteObject(packet2, _objectID);
-	_game->SendSectorAround(this, packet2, false);
-
-	NetPacket::Free(packet2);
+	NetPacket::Free(packet);
 
 	//--------------------------------------------------------------------
 	// DB에 해당 플레이어의 사망 정보 저장
