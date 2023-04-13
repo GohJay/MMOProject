@@ -2,10 +2,12 @@
 #include "../../Common/CrashDump.h"
 #include "../../Common/Logger.h"
 #include "ChatServer.h"
+#include "MonitorClient.h"
 #include "ServerConfig.h"
 #pragma comment(lib, "Winmm.lib")
 
-ChatServer g_Server;
+ChatServer g_ChatServer;
+MonitorClient g_MonitorClient(&g_ChatServer);
 time_t g_StartTime;
 bool g_StopSignal = false;
 bool g_ControlMode = false;
@@ -33,7 +35,7 @@ void Run()
 	if (!Init())
 		return;
 
-	if (!g_Server.Start(ServerConfig::GetServerIP()
+	if (!g_ChatServer.Start(ServerConfig::GetServerIP()
 		, ServerConfig::GetServerPort()
 		, ServerConfig::GetIOCPWorkerCreate()
 		, ServerConfig::GetIOCPWorkerRunning()
@@ -50,7 +52,7 @@ void Run()
 		Sleep(1000);
 	}
 
-	g_Server.Stop();
+	g_ChatServer.Stop();
 }
 
 bool Init()
@@ -88,16 +90,16 @@ Send TPS: %d\n\
 ------------------------------------\n\
 \n\n\n\n\n\n\n\n\n\n\n\n\n\n"
 		, stTime.tm_year + 1900, stTime.tm_mon + 1, stTime.tm_mday, stTime.tm_hour, stTime.tm_min, stTime.tm_sec
-		, g_Server.GetCapacityPacketPool()
-		, g_Server.GetUsePacketPool()
-		, g_Server.GetSessionCount()
-		, g_Server.GetUsePlayerPool()
-		, g_Server.GetPlayerCount()
-		, g_Server.GetLoginPlayerCount()
-		, g_Server.GetTotalAcceptCount()
-		, g_Server.GetAcceptTPS()
-		, g_Server.GetRecvTPS()
-		, g_Server.GetSendTPS());
+		, g_ChatServer.GetCapacityPacketPool()
+		, g_ChatServer.GetUsePacketPool()
+		, g_ChatServer.GetSessionCount()
+		, g_ChatServer.GetUsePlayerPool()
+		, g_ChatServer.GetPlayerCount()
+		, g_ChatServer.GetLoginPlayerCount()
+		, g_ChatServer.GetTotalAcceptCount()
+		, g_ChatServer.GetAcceptTPS()
+		, g_ChatServer.GetRecvTPS()
+		, g_ChatServer.GetSendTPS());
 }
 
 void Control()

@@ -28,6 +28,16 @@ struct SERVER
 	int timeoutSec;
 };
 
+struct CLIENT
+{
+	//-----------------------------------
+	// MonitorServer Connect IP / PORT
+	//-----------------------------------
+	wchar_t ip[16];
+	int port;
+	bool reconnect;
+};
+
 struct SYSTEM
 {
 	//-----------------------------------
@@ -35,4 +45,13 @@ struct SYSTEM
 	//-----------------------------------
 	int logLevel;
 	wchar_t logPath[MAX_PATH / 2];
+};
+
+struct DATABASE
+{
+	//-----------------------------------
+	// Redis 접속 정보
+	//-----------------------------------
+	wchar_t redis_ip[16];
+	int redis_port;
 };

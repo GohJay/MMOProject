@@ -14,9 +14,16 @@ public:
 	static BYTE GetPacketCode() { return _server.packetCode; }
 	static BYTE GetPacketKey() { return _server.packetKey; }
 	static int GetSessionTimeoutSec() { return _server.timeoutSec; }
+	static const wchar_t* GetMonitorServerIP() { return _client.ip; }
+	static int GetMonitorServerPort() { return _client.port; }
+	static bool IsMonitorReconnect() { return _client.reconnect; }
 	static int GetLogLevel() { return _system.logLevel; }
 	static const wchar_t* GetLogPath() { return _system.logPath; }
+	static const wchar_t* GetRedisIP() { return _database.redis_ip; }
+	static int GetRedisPort() { return _database.redis_port; }
 private:
 	static SERVER _server;
+	static CLIENT _client;
 	static SYSTEM _system;
+	static DATABASE _database;
 };

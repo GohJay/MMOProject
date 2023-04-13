@@ -10,6 +10,7 @@
 #include <list>
 #include <thread>
 #include <atomic>
+#include <cpp_redis/cpp_redis>
 
 typedef DWORD64 SESSION_ID;
 
@@ -46,6 +47,7 @@ private:
 	void SendSectorAround(PLAYER* player, Jay::NetPacket* packet);
 	void LockSectorAround(SECTOR_AROUND* sectorAround);
 	void UnLockSectorAround(SECTOR_AROUND* sectorAround);
+	bool Auth(__int64 accountNo, char* sessionKey);
 private:
 	bool PacketProc(DWORD64 sessionID, Jay::NetPacket* packet, WORD type);
 	bool PacketProc_ChatLogin(DWORD64 sessionID, Jay::NetPacket* packet);
@@ -58,4 +60,6 @@ private:
 	std::atomic<int> _loginPlayerCount;
 	std::list<PLAYER*> _sectorList[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
 	Jay::SRWLock _sectorLockTable[dfSECTOR_MAX_Y][dfSECTOR_MAX_X];
+	cpp_redis::client _memorydb;
+	Jay::SRWLock _memorydbLock;
 };

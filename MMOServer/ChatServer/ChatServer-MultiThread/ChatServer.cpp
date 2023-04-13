@@ -4,9 +4,12 @@
 #include "Packet.h"
 #include "../../Common/Logger.h"
 #include "../../Common/CrashDump.h"
+#include "../../Common/StringUtil.h"
 #include "../../Lib/Network/include/Error.h"
 #include "../../Lib/Network/include/NetException.h"
 #pragma comment(lib, "../../Lib/Network/lib64/Network.lib")
+#pragma comment(lib, "../../Lib/Redis/lib64/tacopie.lib")
+#pragma comment(lib, "../../Lib/Redis/lib64/cpp_redis.lib")
 
 using namespace Jay;
 
@@ -119,10 +122,22 @@ void ChatServer::OnError(int errcode, const wchar_t* funcname, int linenum, WPAR
 }
 bool ChatServer::Initial()
 {
+	//--------------------------------------------------------------------
+	// Redis Connect
+	//--------------------------------------------------------------------	
+	std::string redisIP;
+	UnicodeToString(ServerConfig::GetRedisIP(), redisIP);
+	_memorydb.connect(redisIP, ServerConfig::GetRedisPort());
+
 	return true;
 }
 void ChatServer::Release()
 {
+	//--------------------------------------------------------------------
+	// Redis Disconnect
+	//--------------------------------------------------------------------
+	_memorydb.disconnect();
+
 	PLAYER* player;
 	for (auto iter = _playerMap.begin(); iter != _playerMap.end();)
 	{
@@ -203,31 +218,29 @@ void ChatServer::RemovePlayer_Sector(PLAYER* player)
 }
 void ChatServer::UpdatePlayer_Sector(PLAYER* player, int sectorX, int sectorY)
 {
-	SRWLock* addSectorLock;
-	SRWLock* delSectorLock;
+	SRWLock* curSectorLock;
+	SRWLock* oldSectorLock;
 
-	addSectorLock = &_sectorLockTable[sectorY][sectorX];;
+	curSectorLock = &_sectorLockTable[sectorY][sectorX];;
 	if (player->sector.x == dfUNKNOWN_SECTOR || player->sector.y == dfUNKNOWN_SECTOR)
 	{
-		addSectorLock->Lock();
+		curSectorLock->Lock();
 		AddPlayer_Sector(player, sectorX, sectorY);
-		addSectorLock->UnLock();
+		curSectorLock->UnLock();
 		return;
 	}
 
-	delSectorLock = &_sectorLockTable[player->sector.y][player->sector.x];
+	oldSectorLock = &_sectorLockTable[player->sector.y][player->sector.x];
 	while (1)
 	{
-		delSectorLock->Lock();
-		if (addSectorLock->TryLock())
+		LockGuard<SRWLock> lockGuard(oldSectorLock);
+		if (curSectorLock->TryLock())
 		{
 			RemovePlayer_Sector(player);
 			AddPlayer_Sector(player, sectorX, sectorY);
-			addSectorLock->UnLock();
-			delSectorLock->UnLock();
+			curSectorLock->UnLock();
 			break;
 		}
-		delSectorLock->UnLock();
 	}
 }
 void ChatServer::GetSectorAround(int sectorX, int sectorY, SECTOR_AROUND* sectorAround)
@@ -299,6 +312,38 @@ void ChatServer::UnLockSectorAround(SECTOR_AROUND* sectorAround)
 		sectorLock->UnLock_Shared();
 	}
 }
+bool ChatServer::Auth(__int64 accountNo, char* sessionKey)
+{
+	LockGuard<SRWLock> lockGuard(&_memorydbLock);
+
+	//--------------------------------------------------------------------
+	// Redis 에서 세션 토큰 얻기 (Key: AccountNo, Value: SessionKey)
+	//--------------------------------------------------------------------
+	std::string key = std::to_string(accountNo) + "_chat";
+	std::string token = std::string(sessionKey, 64);
+	std::future<cpp_redis::reply> future = _memorydb.get(key);
+	_memorydb.sync_commit();
+
+	//--------------------------------------------------------------------
+	// 세션 토큰 인증
+	//--------------------------------------------------------------------
+	WORD type;
+	cpp_redis::reply reply = future.get();
+	if (reply.is_string() && reply.as_string().compare(token) == 0)
+	{
+		//--------------------------------------------------------------------
+		// Redis 에서 인증 완료한 토큰 제거
+		//--------------------------------------------------------------------
+		std::vector<std::string> keys(1);
+		keys.emplace_back(std::move(key));
+		_memorydb.del(keys);
+		_memorydb.sync_commit();
+
+		return true;
+	}
+
+	return false;
+}
 bool ChatServer::PacketProc(DWORD64 sessionID, NetPacket* packet, WORD type)
 {
 	//--------------------------------------------------------------------
@@ -352,11 +397,22 @@ bool ChatServer::PacketProc_ChatLogin(DWORD64 sessionID, NetPacket* packet)
 	if (player->login)
 		return false;
 
-	wcscpy_s(player->id, sizeof(id) / 2, id);
-	wcscpy_s(player->nickname, sizeof(nickname) / 2, nickname);
-	player->accountNo = accountNo;
-	player->login = true;
-	_loginPlayerCount++;
+	//--------------------------------------------------------------------
+	// 세션 토큰 인증
+	//--------------------------------------------------------------------
+	bool result;
+	if (Auth(accountNo, sessionKey))
+	{
+		wcscpy_s(player->id, sizeof(id) / 2, id);
+		wcscpy_s(player->nickname, sizeof(nickname) / 2, nickname);
+		player->accountNo = accountNo;
+		player->login = true;
+		_loginPlayerCount++;
+	
+		result = true;
+	}
+	else
+		result = false;
 
 	//--------------------------------------------------------------------
 	// 오브젝트풀에서 직렬화 버퍼 할당
@@ -366,7 +422,7 @@ bool ChatServer::PacketProc_ChatLogin(DWORD64 sessionID, NetPacket* packet)
 	//--------------------------------------------------------------------
 	// 해당 유저에게 로그인 완료 메시지 보내기
 	//--------------------------------------------------------------------
-	Packet::MakeChatLogin(resPacket, true, player->accountNo);
+	Packet::MakeChatLogin(resPacket, result, accountNo);
 	SendPacket(player->sessionID, resPacket);
 
 	//--------------------------------------------------------------------

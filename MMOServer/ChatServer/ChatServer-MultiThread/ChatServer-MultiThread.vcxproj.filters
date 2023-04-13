@@ -57,6 +57,15 @@
     <ClCompile Include="..\..\Common\Logger.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="MonitorClient.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Common\ProcesserUsage.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Common\ProcessUsage.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -114,6 +123,15 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Common\ObjectPool_TLS.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="MonitorClient.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\ProcesserUsage.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\ProcessUsage.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
