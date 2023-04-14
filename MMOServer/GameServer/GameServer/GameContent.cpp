@@ -17,6 +17,9 @@ using namespace Jay;
 
 GameContent::GameContent(GameServer* server) : _server(server)
 {
+	//--------------------------------------------------------------------
+	// 네트워크 라이브러리에 게임 스레드 핸들러 연결
+	//--------------------------------------------------------------------
 	_server->AttachContent(this, CONTENT_ID_GAME, FRAME_INTERVAL_GAME);
 }
 GameContent::~GameContent()

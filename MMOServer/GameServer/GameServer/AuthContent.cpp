@@ -17,7 +17,7 @@ using namespace Jay;
 AuthContent::AuthContent(GameServer* server) : _server(server), _stopSignal(false)
 {
 	//--------------------------------------------------------------------
-	// NetworkLib 에 인증 스레드 연결
+	// 네트워크 라이브러리에 인증 스레드 연결
 	//--------------------------------------------------------------------	
 	_server->AttachContent(this, CONTENT_ID_AUTH, FRAME_INTERVAL_AUTH, true);
 }
