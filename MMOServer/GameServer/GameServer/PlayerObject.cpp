@@ -257,25 +257,23 @@ void PlayerObject::Restart()
 			case PLAYER:
 				{
 					PlayerObject* existPlayer = static_cast<PlayerObject*>(object);
-					if (!existPlayer->IsDie())
-					{
-						NetPacket* packet3 = NetPacket::Alloc();
 
-						Packet::MakeCreateOtherCharacter(packet3
-							, existPlayer->GetID()
-							, existPlayer->GetCharacterType()
-							, existPlayer->GetNickname()
-							, existPlayer->GetPosX()
-							, existPlayer->GetPosY()
-							, existPlayer->GetRotation()
-							, existPlayer->GetLevel()
-							, FALSE
-							, existPlayer->IsSit()
-							, existPlayer->IsDie());
-						_game->SendUnicast(this, packet3);
+					NetPacket* packet3 = NetPacket::Alloc();
 
-						NetPacket::Free(packet3);
-					}
+					Packet::MakeCreateOtherCharacter(packet3
+						, existPlayer->GetID()
+						, existPlayer->GetCharacterType()
+						, existPlayer->GetNickname()
+						, existPlayer->GetPosX()
+						, existPlayer->GetPosY()
+						, existPlayer->GetRotation()
+						, existPlayer->GetLevel()
+						, FALSE
+						, existPlayer->IsSit()
+						, existPlayer->IsDie());
+					_game->SendUnicast(this, packet3);
+
+					NetPacket::Free(packet3);
 				}
 				break;
 			case MONSTER:

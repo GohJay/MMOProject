@@ -830,6 +830,21 @@ bool GameContent::Initial()
 void GameContent::Release()
 {
 	//--------------------------------------------------------------------
+	// Resource Clear
+	//--------------------------------------------------------------------
+	for (auto iter = _dataCristalMap.begin(); iter != _dataCristalMap.end(); ++iter)
+	{
+		DATA_CRISTAL* data = iter->second;
+		delete data;
+	}
+
+	for (auto iter = _dataMonsterMap.begin(); iter != _dataMonsterMap.end(); ++iter)
+	{
+		DATA_MONSTER* data = iter->second;
+		delete data;
+	}
+
+	//--------------------------------------------------------------------
 	// Thread End
 	//--------------------------------------------------------------------
 	SetEvent(_hExitEvent);
@@ -867,7 +882,6 @@ void GameContent::DBWriteThread()
 }
 void GameContent::ManagementThread()
 {
-	HANDLE hHandle[2] = { _hDBJobEvent, _hExitEvent };
 	DWORD ret;
 	while (1)
 	{
